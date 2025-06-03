@@ -19,7 +19,7 @@ class LinearWeightNorm(nn.Module):
 
     def extra_repr(self):
         return 'in_features={}, out_features={}, bias={}'.format(
-            self.in_features, self.out_features, self.bias is not None
+            self.linear.in_features, self.linear.out_features, self.linear.bias is not None
         )
 
     def init(self, x, init_scale=1.0):
@@ -77,9 +77,8 @@ class Conv2dWeightNorm(nn.Module):
     def forward(self, input):
         return self.conv(input)
 
-    @overrides
     def extra_repr(self):
-        return self.conv.extra_repr()
+        return self.conv.extra_repr() or ''
 
 
 class ConvTranspose2dWeightNorm(nn.Module):
@@ -123,6 +122,5 @@ class ConvTranspose2dWeightNorm(nn.Module):
     def forward(self, input):
         return self.deconv(input)
 
-    @overrides
     def extra_repr(self):
-        return self.deconv.extra_repr()
+        return self.deconv.extra_repr() or ''

@@ -29,8 +29,9 @@ from cleanfid import fid as fid_calculator
 
 
 import tensorflow as tf
-import tensorflow_gan as tfgan
 import tensorflow_hub as tfhub
+# Replace tensorflow-gan with modern metrics
+import modern_metrics
 
 INCEPTION_TFHUB = 'https://tfhub.dev/tensorflow/tfgan/eval/inception/1'
 INCEPTION_OUTPUT = 'logits'
@@ -72,7 +73,7 @@ def classifier_fn_from_tfhub(output_fields, inception_model,
                              return_tensor=False):
   """Returns a function that can be as a classifier function.
 
-  Copied from tfgan but avoid loading the model each time calling _classifier_fn
+  Modernized version that replaces tf.compat.v1.layers.flatten
 
   Args:
     output_fields: A string, list, or `None`. If present, assume the module
@@ -93,7 +94,7 @@ def classifier_fn_from_tfhub(output_fields, inception_model,
     if return_tensor:
       assert len(output) == 1
       output = list(output.values())[0]
-    return tf.nest.map_structure(tf.compat.v1.layers.flatten, output)
+    return tf.nest.map_structure(tf.keras.utils.flatten, output)
 
   return _classifier_fn
 
@@ -109,11 +110,10 @@ def run_inception_jit(inputs,
   else:
     inputs = tf.cast(inputs, tf.float32) / 255.
 
-  return tfgan.eval.run_classifier_fn(
+  return modern_metrics.run_classifier_fn(
     inputs,
-    num_batches=num_batches,
     classifier_fn=classifier_fn_from_tfhub(None, inception_model),
-    dtypes=_DEFAULT_DTYPES)
+    num_batches=num_batches)
 
 
 @tf.function
@@ -322,14 +322,11 @@ def compute_fid_and_is_cifar10(config, assetdir, inceptionv3, ckpt, name='/0', s
       inception_score = calculate_inception_score_styleGAN(all_logits[k * num_samples: (k + 1) * num_samples],
                                                            inceptionv3, ckpt, name, sample_dir)
 
-    fid = tfgan.eval.frechet_classifier_distance_from_activations(
+    fid = modern_metrics.frechet_classifier_distance_from_activations(
       data_pools, all_pools[k * num_samples: (k + 1) * num_samples])
-    # Hack to get tfgan KID work for eager execution.
-    tf_data_pools = tf.convert_to_tensor(data_pools)
-    tf_all_pools = tf.convert_to_tensor(all_pools[k * num_samples: (k + 1) * num_samples])
-    kid = tfgan.eval.kernel_classifier_distance_from_activations(
-      tf_data_pools, tf_all_pools).numpy()
-    del tf_data_pools, tf_all_pools
+    # Use modern KID implementation
+    kid = modern_metrics.kernel_classifier_distance_from_activations(
+      data_pools, all_pools[k * num_samples: (k + 1) * num_samples])
     name = name.split('/')[-1]
 
     logging.info(
@@ -362,7 +359,7 @@ def calculate_inception_score_styleGAN(all_logits, inceptionv3, ckpt, name, samp
 
     # Compute FID/KID/IS on all samples together.
     if not inceptionv3:
-      inception_score = tfgan.eval.classifier_score_from_logits(all_logit)
+      inception_score = modern_metrics.classifier_score_from_logits(all_logit)
       inception_scores.append(inception_score)
     else:
       inception_score = -1
@@ -379,7 +376,7 @@ def calculate_inception_score_CDSM(all_logits, inceptionv3):
 
   # Compute FID/KID/IS on all samples together.
   if not inceptionv3:
-    inception_score = tfgan.eval.classifier_score_from_logits(all_logits)
+    inception_score = modern_metrics.classifier_score_from_logits(all_logits)
   else:
     inception_score = -1
 

@@ -12,7 +12,7 @@ from flow_models.wolf.flows.flow import Flow
 
 
 class Conv1x1Flow(Flow):
-    def __init__(self, in_channels, inverse=False):
+    def __init__(self, in_channels, inverse=False, *args, **kwargs):
         super(Conv1x1Flow, self).__init__(inverse)
         self.in_channels = in_channels
         self.weight = Parameter(torch.Tensor(in_channels, in_channels))
@@ -27,7 +27,8 @@ class Conv1x1Flow(Flow):
         self.weight_inv.copy_(self.weight.data.inverse())
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         """
         Args:
             input: Tensor
@@ -43,7 +44,8 @@ class Conv1x1Flow(Flow):
         return out, logdet.mul(H * W).to(self.weight.device)
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         """
         Args:
             input: Tensor
@@ -59,11 +61,10 @@ class Conv1x1Flow(Flow):
         return out, logdet.mul(H * W).to(self.weight_inv.device)
 
     @overrides
-    def init(self, data, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
-            return self.forward(data)
+            return self.forward(*inputs, **kwargs)
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}, in_channels={}'.format(self.inverse, self.in_channels)
 
@@ -88,7 +89,7 @@ class InvertibleLinearFlow(Flow):
         self.weight_inv.copy_(self.weight.data.inverse())
 
     @overrides
-    def forward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None, *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
@@ -112,7 +113,7 @@ class InvertibleLinearFlow(Flow):
         return out, logdet.to(self.weight.device)
 
     @overrides
-    def backward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None, *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
@@ -136,11 +137,13 @@ class InvertibleLinearFlow(Flow):
         return out, logdet.to(self.weight_inv.device)
 
     @overrides
-    def init(self, data: torch.Tensor, mask: Union[torch.Tensor, None] = None, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert len(inputs) == 1, "InvertibleLinearFlow expects exactly one input tensor"
+        data = inputs[0]
+        mask = kwargs.get('mask', None)
         with torch.no_grad():
             return self.forward(data, mask=mask)
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}, in_features={}'.format(self.inverse, self.in_features)
 
@@ -180,7 +183,7 @@ class InvertibleMultiHeadFlow(Flow):
         self.weight_inv.copy_(self.weight.data.inverse())
 
     @overrides
-    def forward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None, *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
@@ -215,7 +218,7 @@ class InvertibleMultiHeadFlow(Flow):
         return out, logdet.to(self.weight.device)
 
     @overrides
-    def backward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None, *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
@@ -250,11 +253,13 @@ class InvertibleMultiHeadFlow(Flow):
         return out, logdet.to(self.weight.device)
 
     @overrides
-    def init(self, data: torch.Tensor, mask: Union[torch.Tensor, None] = None, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert len(inputs) == 1, "InvertibleMultiHeadFlow expects exactly one input tensor"
+        data = inputs[0]
+        mask = kwargs.get('mask', None)
         with torch.no_grad():
-            return self.forward(data, mask)
+            return self.forward(data, mask=mask)
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}, in_features={}, heads={}, type={}'.format(self.inverse, self.in_features, self.heads, self.type)
 

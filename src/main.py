@@ -24,6 +24,41 @@ import logging
 import os
 import tensorflow as tf
 
+# Configure TensorFlow and PyTorch for CUDA compatibility
+def configure_gpu_memory():
+  """Configure GPU memory to prevent CUDA conflicts."""
+  # TensorFlow GPU configuration
+  gpus = tf.config.experimental.list_physical_devices('GPU')
+  if gpus:
+    try:
+      # Enable memory growth for TensorFlow
+      for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+      # Set virtual GPU memory limit if needed
+      tf.config.experimental.set_virtual_device_configuration(
+        gpus[0],
+        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=8192)]  # 8GB limit
+      )
+      logging.info(f"TensorFlow configured with {len(gpus)} GPU(s)")
+    except RuntimeError as e:
+      logging.warning(f"GPU configuration error: {e}")
+
+  # PyTorch CUDA configuration
+  if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+    # Set PyTorch memory fraction
+    torch.cuda.set_per_process_memory_fraction(0.8)  # Use 80% of GPU memory
+    logging.info(f"PyTorch configured with CUDA {torch.version.cuda}")
+    logging.info(f"Available GPUs: {torch.cuda.device_count()}")
+
+  # Set environment variables for CUDA
+  os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+  os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+  os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # Use first GPU only
+
+# Configure GPU memory before any model loading
+configure_gpu_memory()
+
 FLAGS = flags.FLAGS
 
 config_flags.DEFINE_config_file(

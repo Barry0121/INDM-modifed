@@ -15,7 +15,7 @@ class NICE1d(Flow):
     NICE Flow for 1D data
     """
     def __init__(self, in_features, hidden_features=None, inverse=False, split_type='continuous',
-                 order='up', transform='affine', alpha=1.0, type='mlp', activation='elu'):
+                 order='up', transform='affine', alpha=1.0, type='mlp', activation='elu', **kwargs):
         super(NICE1d, self).__init__(inverse)
         self.in_features = in_features
         self.factor = 2
@@ -84,15 +84,17 @@ class NICE1d(Flow):
         return params
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, in_channels, H, W]
         Returns: out: Tensor , logdet: Tensor
             out: [batch, in_channels, H, W], the output of the flow
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
         """
+        assert len(inputs) == 1, "NICE1d expects exactly one input tensor"
+        input = inputs[0]
         # [batch, length, in_channels]
         z1, z2 = self.split(input)
         # [batch, length, features]
@@ -105,15 +107,17 @@ class NICE1d(Flow):
         return self.unsplit(z1, z2), logdet
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, in_channels, H, W]
         Returns: out: Tensor , logdet: Tensor
             out: [batch, in_channels, H, W], the output of the flow
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
         """
+        assert len(inputs) == 1, "NICE1d expects exactly one input tensor"
+        input = inputs[0]
         if self.analytic_bwd:
             return self.backward_analytic(input)
         else:
@@ -153,7 +157,9 @@ class NICE1d(Flow):
         return self.unsplit(z1, z2), logdet * -1.0
 
     @overrides
-    def init(self, data: torch.Tensor, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert len(inputs) == 1, "NICE1d expects exactly one input tensor"
+        data = inputs[0]
         with torch.no_grad():
             # [batch, length, in_channels]
             z1, z2 = self.split(data)
@@ -166,7 +172,6 @@ class NICE1d(Flow):
             z1, z2 = (z, zp) if self.up else (zp, z)
             return self.unsplit(z1, z2), logdet
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}, in_features={}, split={}, order={}, factor={}, transform={}'.format(self.inverse, self.in_features,
                                                                                                 self.split_type, 'up' if self.up else 'down',
@@ -183,7 +188,7 @@ class NICE2d(Flow):
     """
     def __init__(self, in_channels, hidden_channels=None, h_channels=0, inverse=False,
                  split_type='continuous', order='up', factor=2, transform='affine', alpha=1.0,
-                 type='conv', h_type=None, activation='relu', normalize=None, num_groups=None):
+                 type='conv', h_type=None, activation='relu', normalize=None, num_groups=None, **kwargs):
         super(NICE2d, self).__init__(inverse)
         self.in_channels = in_channels
         self.factor = factor
@@ -281,7 +286,8 @@ class NICE2d(Flow):
         return params
 
     @overrides
-    def forward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, h=None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         """
         Args:
             input: Tensor
@@ -310,7 +316,7 @@ class NICE2d(Flow):
         return self.unsplit(z1, z2), logdet
 
     @overrides
-    def backward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *input, h=None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
             input: Tensor
@@ -322,10 +328,11 @@ class NICE2d(Flow):
             out: [batch, in_channels, H, W], the output of the flow
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
         """
+        input_tensor = input[0]
         if self.analytic_bwd:
-            return self.backward_analytic(input, h=h)
+            return self.backward_analytic(input_tensor, h=h)
         else:
-            return self.backward_iterative(input, h=h)
+            return self.backward_iterative(input_tensor, h=h)
 
     def backward_analytic(self, z: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
         # [batch, length, in_channels]
@@ -371,7 +378,7 @@ class NICE2d(Flow):
         return self.unsplit(z1, z2), logdet * -1.0
 
     @overrides
-    def init(self, data: torch.Tensor, h=None, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, data, *input, h=None, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
             # [batch, length, in_channels]
             z1, z2 = self.split(data)
@@ -389,7 +396,6 @@ class NICE2d(Flow):
             z1, z2 = (z, zp) if self.up else (zp, z)
             return self.unsplit(z1, z2), logdet
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}, in_channels={}, split={}, order={}, factor={}, transform={}'.format(self.inverse, self.in_channels,
                                                                                                 self.split_type, 'up' if self.up else 'down',
@@ -406,7 +412,7 @@ class MaskedConvFlow(Flow):
     """
 
     def __init__(self, in_channels, kernel_size, hidden_channels=None, h_channels=None,
-                 h_type=None, activation='relu', order='A', transform='affine', alpha=1.0, inverse=False):
+                 h_type=None, activation='relu', order='A', transform='affine', alpha=1.0, inverse=False, **kwargs):
         super(MaskedConvFlow, self).__init__(inverse)
         self.in_channels = in_channels
         if hidden_channels is None:
@@ -465,7 +471,7 @@ class MaskedConvFlow(Flow):
         return params
 
     @overrides
-    def forward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *input, h=None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
             input: Tensor
@@ -477,17 +483,18 @@ class MaskedConvFlow(Flow):
             out: [batch, in_channels, H, W], the output of the flow
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
         """
+        input_tensor = input[0]
         if self.h_net is not None:
             h = self.h_net(h)
         else:
             h = None
 
-        params = self.transform.calc_params(self.calc_params(input, h=h))
-        out, logdet = self.transform.fwd(input, params)
+        params = self.transform.calc_params(self.calc_params(input_tensor, h=h))
+        out, logdet = self.transform.fwd(input_tensor, params)
         return out, logdet
 
     @overrides
-    def backward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *input, h=None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
             input: Tensor
@@ -499,10 +506,11 @@ class MaskedConvFlow(Flow):
             out: [batch, in_channels, H, W], the output of the flow
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
         """
+        input_tensor = input[0]
         if self.analytic_bwd:
-            return self.backward_analytic(input, h=h)
+            return self.backward_analytic(input_tensor, h=h)
         else:
-            return self.backward_iterative(input, h=h)
+            return self.backward_iterative(input_tensor, h=h)
 
     def backward_analytic(self, z: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.h_net is not None:
@@ -602,7 +610,7 @@ class MaskedConvFlow(Flow):
         return out
 
     @overrides
-    def init(self, data, h=None, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, data, *input, h=None, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
             if self.h_net is not None:
                 h = self.h_net(h)
@@ -613,7 +621,6 @@ class MaskedConvFlow(Flow):
             out, logdet = self.transform.fwd(data, params)
             return out, logdet
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}, in_channels={}, order={}, kernel={}, transform={}'.format(self.inverse, self.in_channels, self.order,
                                                                                       self.kernel_size, self.transform)

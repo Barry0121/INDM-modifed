@@ -42,7 +42,8 @@ class GlowUnit(Flow):
                                    activation=activation, normalize=normalize, num_groups=num_groups)
 
     @overrides
-    def forward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, h=None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         # block1, type=continuous
         out, logdet_accum = self.coupling1_up.forward(input, h=h)
 
@@ -66,7 +67,8 @@ class GlowUnit(Flow):
         return out, logdet_accum
 
     @overrides
-    def backward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, h=None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         # block2, type=skip
         out, logdet_accum = self.coupling2_dn.backward(input, h=h)
 
@@ -90,7 +92,8 @@ class GlowUnit(Flow):
         return out, logdet_accum
 
     @overrides
-    def init(self, data: torch.Tensor, h=None, init_scale=1.0):
+    def init(self, *input, h=None, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        data = input[0]
         # block1, type=continuous
         out, logdet_accum = self.coupling1_up.init(data, h=h, init_scale=init_scale)
 
@@ -132,7 +135,8 @@ class GlowStep(Flow):
         self.conv1x1.sync()
 
     @overrides
-    def forward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, h=None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         out, logdet_accum = self.actnorm.forward(input)
 
         out, logdet = self.conv1x1.forward(out)
@@ -143,7 +147,8 @@ class GlowStep(Flow):
         return out, logdet_accum
 
     @overrides
-    def backward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, h=None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         out, logdet_accum = self.unit.backward(input, h=h)
 
         out, logdet = self.conv1x1.backward(out)
@@ -154,7 +159,8 @@ class GlowStep(Flow):
         return out, logdet_accum
 
     @overrides
-    def init(self, data, h=None, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *input, h=None, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        data = input[0]
         out, logdet_accum = self.actnorm.init(data, init_scale=init_scale)
 
         out, logdet = self.conv1x1.init(out, init_scale=init_scale)

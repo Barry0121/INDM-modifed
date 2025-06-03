@@ -130,21 +130,30 @@ class DequantFlow(Flow):
         self.sigmoid = SigmoidFlow(inverse=False)
 
     @overrides
-    def forward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert len(inputs) == 1, "DequantFlow expects exactly one input tensor"
+        input = inputs[0]
+        h = kwargs.get('h', None)
         out, logdet_accum = self.core.forward(input, h=h)
         out, logdet = self.sigmoid.forward(out)
         logdet_accum = logdet_accum + logdet
         return out, logdet_accum
 
     @overrides
-    def backward(self, input: torch.Tensor, h=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert len(inputs) == 1, "DequantFlow expects exactly one input tensor"
+        input = inputs[0]
+        h = kwargs.get('h', None)
         out, logdet_accum = self.sigmoid.backward(input)
         out, logdet = self.core.backward(out, h=h)
         logdet_accum = logdet_accum + logdet
         return out, logdet_accum
 
     @overrides
-    def init(self, data, h=None, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert len(inputs) == 1, "DequantFlow expects exactly one input tensor"
+        data = inputs[0]
+        h = kwargs.get('h', None)
         out, logdet_accum = self.core.init(data, h=h, init_scale=init_scale)
         out, logdet = self.sigmoid.init(out, init_scale=init_scale)
         logdet_accum = logdet_accum + logdet

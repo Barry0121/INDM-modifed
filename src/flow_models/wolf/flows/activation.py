@@ -15,11 +15,11 @@ class IdentityFlow(Flow):
         super(IdentityFlow, self).__init__(inverse)
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -27,14 +27,16 @@ class IdentityFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "IdentityFlow expects exactly one input tensor"
+        input = inputs[0]
         return input, input.new_zeros(input.size(0))
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -42,14 +44,15 @@ class IdentityFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "IdentityFlow expects exactly one input tensor"
+        input = inputs[0]
         return input, input.new_zeros(input.size(0))
 
     @overrides
-    def init(self, data, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
-            return self.forward(data)
+            return self.forward(*inputs, **kwargs)
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}'.format(self.inverse)
 
@@ -65,11 +68,11 @@ class PowshrinkFlow(Flow):
         self.exponent=exponent
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -77,6 +80,8 @@ class PowshrinkFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "PowshrinkFlow expects exactly one input tensor"
+        input = inputs[0]
         sign = input.sign()
         input = input * sign
         mask = input.lt(1.0).type_as(input)
@@ -87,11 +92,11 @@ class PowshrinkFlow(Flow):
         return out, logdet
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -99,6 +104,8 @@ class PowshrinkFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "PowshrinkFlow expects exactly one input tensor"
+        input = inputs[0]
         sign = input.sign()
         input = input * sign
         mask = input.lt(1.0).type_as(input)
@@ -109,11 +116,10 @@ class PowshrinkFlow(Flow):
         return out, logdet
 
     @overrides
-    def init(self, data, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
-            return self.forward(data)
+            return self.forward(*inputs, **kwargs)
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}'.format(self.inverse)
 
@@ -129,11 +135,11 @@ class LeakyReLUFlow(Flow):
         self.negative_slope = negative_slope
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -141,6 +147,8 @@ class LeakyReLUFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "LeakyReLUFlow expects exactly one input tensor"
+        input = inputs[0]
         out = F.leaky_relu(input, self.negative_slope, False)
         log_slope = math.log(self.negative_slope)
         # [batch]
@@ -148,11 +156,11 @@ class LeakyReLUFlow(Flow):
         return out, logdet
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -160,6 +168,8 @@ class LeakyReLUFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "LeakyReLUFlow expects exactly one input tensor"
+        input = inputs[0]
         negative_slope = 1.0 / self.negative_slope
         out = F.leaky_relu(input, negative_slope, False)
         log_slope = math.log(negative_slope)
@@ -168,11 +178,10 @@ class LeakyReLUFlow(Flow):
         return out, logdet
 
     @overrides
-    def init(self, data, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
-            return self.forward(data)
+            return self.forward(*inputs, **kwargs)
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}, negative_slope={}'.format(self.inverse, self.negative_slope)
 
@@ -187,11 +196,11 @@ class ELUFlow(Flow):
         self.alpha = alpha
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -199,6 +208,8 @@ class ELUFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "ELUFlow expects exactly one input tensor"
+        input = inputs[0]
         out = F.elu(input, self.alpha, False)
         # [batch, numel]
         input = input.view(input.size(0), -1)
@@ -208,11 +219,11 @@ class ELUFlow(Flow):
         return out, logdet
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -220,6 +231,8 @@ class ELUFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "ELUFlow expects exactly one input tensor"
+        input = inputs[0]
         mask = input.lt(0.0).type_as(input)
         out = input * (1.0 - mask) + mask * logPlusOne(input.div(self.alpha))
         # [batch, numel]
@@ -230,11 +243,10 @@ class ELUFlow(Flow):
         return out, logdet
 
     @overrides
-    def init(self, data, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
-            return self.forward(data)
+            return self.forward(*inputs, **kwargs)
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}, alpha={}'.format(self.inverse, self.alpha)
 
@@ -248,11 +260,11 @@ class SigmoidFlow(Flow):
         super(SigmoidFlow, self).__init__(inverse)
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -260,17 +272,19 @@ class SigmoidFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "SigmoidFlow expects exactly one input tensor"
+        input = inputs[0]
         out = input.sigmoid()
         logdet = F.softplus(input) + F.softplus(-input)
         logdet = logdet.view(logdet.size(0), -1).sum(dim=1) * -1.
         return out, logdet
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
-            input: Tensor
+            *inputs: Tensor
                 input tensor [batch, *]
 
         Returns: out: Tensor , logdet: Tensor
@@ -278,6 +292,8 @@ class SigmoidFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        assert len(inputs) == 1, "SigmoidFlow expects exactly one input tensor"
+        input = inputs[0]
         eps = 1e-12
         out = torch.log(torch.reciprocal(input + eps) - 1.  + eps) * -1.
         logdet = torch.log(input + eps) + torch.log((1. - input) + eps)
@@ -285,11 +301,10 @@ class SigmoidFlow(Flow):
         return out, logdet
 
     @overrides
-    def init(self, data, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
-            return self.forward(data)
+            return self.forward(*inputs, **kwargs)
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}'.format(self.inverse)
 

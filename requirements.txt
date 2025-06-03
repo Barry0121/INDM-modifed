@@ -1,20 +1,26 @@
-overrides==3.1.0
-ml-collections==0.1.0
-tensorflow-gan==2.0.0
-tensorflow_io
-tensorflow_datasets==3.1.0
-tensorflow==2.4.0
-tensorflow-addons==0.12.0
-tensorflow_probability==0.12.0
-tensorboard==2.4.0
-absl-py==0.10.0
+# Core dependencies
+overrides>=7.4.0
+ml-collections>=0.1.1
+tensorflow==2.15.0
+tensorflow-hub>=0.16.0
+tensorflow-datasets>=4.9.0
+tensorflow-probability>=0.23.0
+tensorboard>=2.15.0
+torch>=2.1.0
+torchvision>=0.16.0
+torchmetrics>=1.2.0
+pytorch-fid>=0.3.0
+absl-py>=2.0.0
 ninja
-scipy
+scipy>=1.10.0
 natsort
 imageio
--f https://storage.googleapis.com/jax-releases/jax_releases.html
-jax[cuda111]
--f https://download.pytorch.org/whl/torch_stable.html
-torch==1.7.1+cu110
-torchvision==0.8.2+cu110
-torchaudio==0.7.2
+numpy>=1.24.0,<2.0.0
+pillow>=10.0.0
+matplotlib>=3.7.0
+h5py>=3.8.0
+wrapt>=1.14.0
+
+# Optional: JAX support (commented out by default)
+# jax[cuda12_pip]>=0.4.20  # For CUDA 12.x
+# jaxlib>=0.4.20

@@ -35,7 +35,8 @@ class PriorFlowUnit(Flow):
                                    inverse=inverse, type=coupling_type, split_type='skip', order='down', activation=activation)
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         # block1, type=continuous
         out, logdet_accum = self.coupling1_up.forward(input)
 
@@ -59,7 +60,8 @@ class PriorFlowUnit(Flow):
         return out, logdet_accum
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         # block2, type=skip
         out, logdet_accum = self.coupling2_dn.backward(input)
 
@@ -83,7 +85,8 @@ class PriorFlowUnit(Flow):
         return out, logdet_accum
 
     @overrides
-    def init(self, data: torch.Tensor, init_scale=1.0):
+    def init(self, *input, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        data = input[0]
         # block1, type=continuous
         out, logdet_accum = self.coupling1_up.init(data, init_scale=init_scale)
 
@@ -123,7 +126,8 @@ class PriorFlowStep(Flow):
         self.linear.sync()
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         out, logdet_accum = self.actnorm.forward(input)
 
         out, logdet = self.linear.forward(out)
@@ -134,7 +138,8 @@ class PriorFlowStep(Flow):
         return out, logdet_accum
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         out, logdet_accum = self.unit.backward(input)
 
         out, logdet = self.linear.backward(out)
@@ -145,7 +150,8 @@ class PriorFlowStep(Flow):
         return out, logdet_accum
 
     @overrides
-    def init(self, data, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *input, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        data = input[0]
         out, logdet_accum = self.actnorm.init(data, init_scale=init_scale)
 
         out, logdet = self.linear.init(out, init_scale=init_scale)
@@ -172,7 +178,8 @@ class PriorFlow(Flow):
             step.sync()
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         out = input
         # [batch]
         logdet_accum = input.new_zeros(input.size(0))
@@ -182,7 +189,8 @@ class PriorFlow(Flow):
         return out, logdet_accum
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        input = inputs[0]
         logdet_accum = input.new_zeros(input.size(0))
         out = input
         for step in reversed(self.steps):
@@ -191,7 +199,8 @@ class PriorFlow(Flow):
         return out, logdet_accum
 
     @overrides
-    def init(self, data, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *input, init_scale=1.0, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        data = input[0]
         out = data
         # [batch]
         logdet_accum = data.new_zeros(data.size(0))

@@ -5,9 +5,9 @@
 
 This repo contains an official PyTorch implementation for the paper "[Maximum Likelihood Training of Implicit Nonlinear Diffusion Model](https://arxiv.org/abs/2205.13699)" in [NeurIPS 2022](https://neurips.cc/Conferences/2022/).
 
-**[Dongjun Kim](https://github.com/Kim-Dongjun) \*, [Byeonghu Na](https://github.com/byeonghu-na) \*, Se Jung Kwon, Dongsoo Lee, Wanmo Kang, and Il-Chul Moon**   
+**[Dongjun Kim](https://github.com/Kim-Dongjun) \*, [Byeonghu Na](https://github.com/byeonghu-na) \*, Se Jung Kwon, Dongsoo Lee, Wanmo Kang, and Il-Chul Moon**
 <sup> * Equal contribution </sup>
- 
+
 --------------------
 
 This paper introduces **Implicit Nonlinear Diffusion Model (INDM)**, that learns the nonlinear diffusion process by combining a normalizing flow and a diffusion process.
@@ -20,6 +20,15 @@ This code was tested with CUDA 11.1 and Python 3.8.
 
 ```
 pip install -r requirements.txt
+```
+
+Or use `uv` package manager.
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync
+source .venv/bin/activate
+pip install jax[cuda12]
 ```
 
 ## Pretrained Checkpoints
@@ -37,7 +46,7 @@ Download stats files and save it to `./assets/stats/`.
 
 ## Training and Evaluation
 
-* When you run a deep model, change the value of `model.num_res_blocks` from 4 to 8 in the config file. (or add `--config.model.num_res_blocks 8` in your script.) 
+* When you run a deep model, change the value of `model.num_res_blocks` from 4 to 8 in the config file. (or add `--config.model.num_res_blocks 8` in your script.)
 
 ### CIFAR-10
 
@@ -51,6 +60,11 @@ python main.py --mode train --config configs/ve/CIFAR10/indm.py --workdir <work_
 * Evaluation (NLL/NELBO evaluation and sampling)
 ```
 python main.py --mode eval --config configs/ve/CIFAR10/indm.py --workdir <work_dir> --config.sampling.pc_denoise=True --config.sampling.pc_denoise_time -1 --config.sampling.begin_snr 0.14 --config.sampling.end_snr 0.14 --config.eval.data_mean=True
+```
+
+Mine example:
+```
+python main.py --mode eval --config configs/ve/CIFAR10/indm.py --workdir INDM/src/checkpoints_cifar10/VE/indm_deep --config.sampling.pc_denoise=True --config.sampling.pc_denoise_time -1 --config.sampling.begin_snr 0.14 --config.sampling.end_snr 0.14 --config.eval.data_mean=True
 ```
 
 #### INDM (VP, FID)
@@ -126,7 +140,7 @@ This work is heavily built upon the code from
 
 ## References
 If you find the code useful for your research, please consider citing
-```bib 
+```bib
 @inproceedings{kim2022maximum,
   title={Maximum Likelihood Training of Implicit Nonlinear Diffusion Model},
   author={Dongjun Kim and Byeonghu Na and Se Jung Kwon and Dongsoo Lee and Wanmo Kang and Il-Chul Moon},

@@ -161,8 +161,10 @@ class MultiHeadAttention2d(nn.Module):
         self.heads = heads
 
     @overrides
-    def forward(self, x, pos_enc=None):
+    def forward(self, *input, pos_enc=None):
         # [batch, channels, height, width]
+        assert len(input) == 1, "MultiHeadAttention2d expects exactly one input tensor"
+        x = input[0]
         if pos_enc is not None:
             x = x + pos_enc
         bs, channels, height, width = x.size()

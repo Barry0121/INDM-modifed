@@ -23,7 +23,7 @@ class ActNorm1dFlow(Flow):
         nn.init.constant_(self.bias, 0.)
 
     @overrides
-    def forward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
@@ -37,6 +37,9 @@ class ActNorm1dFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        input = inputs[0]
+        mask = inputs[1] if len(inputs) > 1 else kwargs.get('mask', None)
+
         dim = input.dim()
         out = input * self.log_scale.exp() + self.bias
         if mask is not None:
@@ -49,7 +52,7 @@ class ActNorm1dFlow(Flow):
         return out, logdet
 
     @overrides
-    def backward(self, input: torch.Tensor, mask: Union[torch.Tensor, None] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
@@ -63,6 +66,9 @@ class ActNorm1dFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        input = inputs[0]
+        mask = inputs[1] if len(inputs) > 1 else kwargs.get('mask', None)
+
         dim = input.dim()
         out = (input - self.bias).div(self.log_scale.exp() + 1e-8)
         if mask is not None:
@@ -75,7 +81,7 @@ class ActNorm1dFlow(Flow):
         return out, logdet
 
     @overrides
-    def init(self, data, mask: Union[torch.Tensor, None] = None, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
@@ -91,9 +97,13 @@ class ActNorm1dFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        data = inputs[0]
+        mask = inputs[1] if len(inputs) > 1 else kwargs.get('mask', None)
+        init_scale = kwargs.get('init_scale', 1.0)
+
         with torch.no_grad():
             # [batch * N1 * ... * Nl, in_features]
-            out, _ = self.forward(data, mask=mask)
+            out, _ = self.forward(data, mask)
             out = out.view(-1, self.in_features)
             mean = out.mean(dim=0)
             std = out.std(dim=0)
@@ -101,9 +111,8 @@ class ActNorm1dFlow(Flow):
 
             self.log_scale.add_(inv_stdv.log())
             self.bias.add_(-mean).mul_(inv_stdv)
-            return self.forward(data, mask=mask)
+            return self.forward(data, mask)
 
-    @overrides
     def extra_repr(self):
         return 'inverse={}, in_features={}'.format(self.inverse, self.in_features)
 
@@ -125,7 +134,7 @@ class ActNorm2dFlow(Flow):
         nn.init.constant_(self.bias, 0.)
 
     @overrides
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
@@ -137,6 +146,7 @@ class ActNorm2dFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        input = inputs[0]
         batch, channels, H, W = input.size()
         # [channels, 1, 1]
         log_scale = self.log_scale
@@ -146,7 +156,7 @@ class ActNorm2dFlow(Flow):
         return out, logdet
 
     @overrides
-    def backward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Args:
@@ -158,6 +168,7 @@ class ActNorm2dFlow(Flow):
             logdet: [batch], the log determinant of :math:`\partial output / \partial input`
 
         """
+        input = inputs[0]
         batch, channels, H, W = input.size()
         # [channels, 1, 1]
         log_scale = self.log_scale
@@ -167,7 +178,10 @@ class ActNorm2dFlow(Flow):
         return out, logdet
 
     @overrides
-    def init(self, data, init_scale=1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init(self, *inputs, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        data = inputs[0]
+        init_scale = kwargs.get('init_scale', 1.0)
+
         with torch.no_grad():
             # [batch, n_channels, H, W]
             out, _ = self.forward(data)
@@ -181,9 +195,8 @@ class ActNorm2dFlow(Flow):
             self.bias.add_(-mean).mul_(inv_stdv)
             return self.forward(data)
 
-    @overrides
     def extra_repr(self):
-        return 'inverse={}, in_channels={}'.format(self.inverse, self.in_channels)
+        return str("inverse={}, in_channels={}".format(self.inverse, self.in_channels))
 
     @classmethod
     def from_params(cls, params: Dict) -> "ActNorm2dFlow":

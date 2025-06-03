@@ -61,8 +61,8 @@ class NormalPrior(Prior):
         return log_probs * -0.5
 
     @overrides
-    def sample(self, nsamples, dim, device=torch.device('cpu')):
-        epsilon = torch.randn(nsamples, dim, device=device)
+    def sample(self, nsample, dim, device=torch.device('cpu')):
+        epsilon = torch.randn(nsample, dim, device=device)
         return epsilon
 
     @overrides
