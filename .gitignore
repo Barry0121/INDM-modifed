@@ -20,3 +20,7 @@ dist/
 # Other
 *.DS_Store
 /assets/
+
+*.npz
+*.pth
+*.npy

@@ -16,8 +16,11 @@
 # pylint: skip-file
 """Return training and evaluation/test datasets from config files."""
 import torch
+import torch.utils.data
 import tensorflow as tf
 import tensorflow_datasets as tfds
+import numpy as np
+from typing import Optional, Callable, Tuple, Any
 import logging
 import socket, os, natsort
 import torchvision.transforms as transforms
@@ -52,6 +55,166 @@ class ImagenetDataSet(torch.utils.data.Dataset):
     image = Image.open(img_loc).convert("RGB")
     tensor_image = self.transform(image)
     return tensor_image
+
+class ProteinContactMapDataset(torch.utils.data.Dataset):
+    """
+    Dataset class for protein contact maps stored as .npy files.
+
+    Args:
+        main_dir (str): Directory containing .npy files with distance/contact maps
+        transform (callable, optional): Optional transform to be applied on a sample
+        max_length (int, optional): Maximum sequence length to pad/crop to
+        contact_threshold (float, optional): Distance threshold for contact definition (Angstroms)
+        return_distance (bool): If True, return distance maps; if False, return binary contact maps
+        file_extension (str): File extension to look for (default: '.npy')
+    """
+
+    def __init__(
+        self,
+        main_dir: str,
+        transform: Optional[Callable] = None,
+        max_length: Optional[int] = None,
+        contact_threshold: float = 8.0,
+        return_distance: bool = True,
+        file_extension: str = '.npy'
+    ):
+        self.main_dir = main_dir
+        self.transform = transform
+        self.max_length = max_length
+        self.contact_threshold = contact_threshold
+        self.return_distance = return_distance
+        self.file_extension = file_extension
+
+        # Get all .npy files and sort them naturally
+        all_files = [f for f in os.listdir(main_dir) if f.endswith(file_extension)]
+        self.total_files = natsort.natsorted(all_files)
+
+        if len(self.total_files) == 0:
+            raise ValueError(f"No {file_extension} files found in {main_dir}")
+
+        print(f"Found {len(self.total_files)} protein contact map files")
+
+    def __len__(self) -> int:
+        return len(self.total_files)
+
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, str]:
+        """
+        Load and process a protein contact/distance map.
+
+        Args:
+            idx (int): Index of the sample to load
+
+        Returns:
+            tuple: (processed_map, filename) where processed_map is a torch.Tensor
+        """
+        # Get file path
+        file_path = os.path.join(self.main_dir, self.total_files[idx])
+        filename = self.total_files[idx]
+
+        # Load the distance map
+        distance_map = np.load(file_path)
+
+        # Ensure it's a square matrix
+        if distance_map.shape[0] != distance_map.shape[1]:
+            raise ValueError(f"Distance map must be square, got shape {distance_map.shape}")
+
+        # Handle sequence length constraints
+        if self.max_length is not None:
+            distance_map = self._handle_length_constraint(distance_map)
+
+        # Convert to contact map if requested
+        if not self.return_distance:
+            # Convert distance to binary contact map
+            contact_map = (distance_map <= self.contact_threshold).astype(np.float32)
+            # Set diagonal to 0 (residue doesn't contact itself)
+            np.fill_diagonal(contact_map, 0)
+            processed_map = contact_map
+        else:
+            processed_map = distance_map.astype(np.float32)
+
+        # Convert to tensor and add channel dimension [1, L, L]
+        tensor_map = torch.from_numpy(processed_map).unsqueeze(0)
+
+        # Apply transforms if specified
+        if self.transform:
+            tensor_map = self.transform(tensor_map)
+
+        return tensor_map, filename
+
+    def _handle_length_constraint(self, distance_map: np.ndarray) -> np.ndarray:
+        """Handle padding or cropping based on max_length constraint."""
+        current_length = distance_map.shape[0]
+
+        if current_length > self.max_length:
+            # Crop from center
+            start_idx = (current_length - self.max_length) // 2
+            end_idx = start_idx + self.max_length
+            distance_map = distance_map[start_idx:end_idx, start_idx:end_idx]
+
+        elif current_length < self.max_length:
+            # Pad with large distance values (or zeros for contact maps)
+            pad_value = 999.0 if self.return_distance else 0.0
+            pad_width = self.max_length - current_length
+            pad_before = pad_width // 2
+            pad_after = pad_width - pad_before
+
+            distance_map = np.pad(
+                distance_map,
+                ((pad_before, pad_after), (pad_before, pad_after)),
+                mode='constant',
+                constant_values=pad_value
+            )
+
+        return distance_map
+
+    def get_protein_info(self, idx: int) -> dict:
+        """Get information about a specific protein."""
+        filename = self.total_files[idx]
+        file_path = os.path.join(self.main_dir, filename)
+        distance_map = np.load(file_path)
+
+        return {
+            'filename': filename,
+            'sequence_length': distance_map.shape[0],
+            'file_path': file_path,
+            'min_distance': np.min(distance_map[distance_map > 0]),  # Exclude diagonal
+            'max_distance': np.max(distance_map),
+            'mean_distance': np.mean(distance_map[distance_map > 0])
+        }
+
+
+# Transform functions for protein contact maps
+class ProteinTransforms:
+    """Collection of transforms for protein contact maps."""
+
+    @staticmethod
+    def normalize_distances(max_distance: float = 50.0):
+        """Normalize distances to [0, 1] range."""
+        def transform(tensor_map):
+            return torch.clamp(tensor_map / max_distance, 0, 1)
+        return transform
+
+    @staticmethod
+    def log_transform(epsilon: float = 1e-6):
+        """Apply log transformation to distances."""
+        def transform(tensor_map):
+            return torch.log(tensor_map + epsilon)
+        return transform
+
+    @staticmethod
+    def add_gaussian_noise(std: float = 0.1):
+        """Add Gaussian noise for data augmentation."""
+        def transform(tensor_map):
+            noise = torch.randn_like(tensor_map) * std
+            return tensor_map + noise
+        return transform
+
+    @staticmethod
+    def symmetrize():
+        """Ensure the matrix is symmetric (should already be for distance maps)."""
+        def transform(tensor_map):
+            return (tensor_map + tensor_map.transpose(-2, -1)) / 2
+        return transform
 
 def get_data_scaler(config):
   """Data normalizer. Assume data are always in [0, 1]."""

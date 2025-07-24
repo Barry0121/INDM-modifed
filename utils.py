@@ -8,7 +8,6 @@ from models import utils as mutils
 from models.ema import ExponentialMovingAverage
 import losses
 import likelihood, sampling
-import flowpp_models
 from flow_models.flow_model import create_flow_model
 
 def restore_checkpoint(config, ckpt_dir, state, device):
