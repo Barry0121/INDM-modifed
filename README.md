@@ -119,6 +119,69 @@ python main.py --mode train --config configs/vp/CELEBA/indm_nll.py --workdir <wo
 python main.py --mode eval --config configs/vp/CELEBA/indm_nll.py --workdir <work_dir>
 ```
 
+### Protein Contact Maps
+
+The codebase supports training on protein contact/distance maps. Protein data should be stored as `.npy` files containing contact or distance matrices.
+
+#### INDM (VP, FID)
+
+* Training
+```
+python main.py --mode train --config configs/vp/PROTEIN/indm_fid.py --workdir <work_dir>
+```
+
+* Evaluation (NLL/NELBO evaluation and sampling)
+```
+python main.py --mode eval --config configs/vp/PROTEIN/indm_fid.py --workdir <work_dir>
+```
+
+#### INDM (VP, NLL)
+
+* Training  
+```
+python main.py --mode train --config configs/vp/PROTEIN/indm_nll.py --workdir <work_dir>
+```
+
+* Evaluation (NLL/NELBO evaluation and sampling)
+```
+python main.py --mode eval --config configs/vp/PROTEIN/indm_nll.py --workdir <work_dir>
+```
+
+#### Configuration Options
+
+The protein config files contain the standard `get_config()` function used by main.py, plus additional configuration variants for different computational needs.
+
+**Using with main.py** (standard approach):
+```bash
+# Default 256x256 configuration
+python main.py --mode train --config configs/vp/PROTEIN/indm_fid.py --workdir <work_dir>
+```
+
+**Alternative configurations**: The config files also contain functions for different setups, but these require custom usage:
+
+* **Small config** (128x128, reduced model): `get_protein_small_config()` and `get_protein_nll_small_config()`
+* **Large config** (512x512, increased capacity): `get_protein_large_config()` and `get_protein_nll_large_config()`  
+* **Fast config** (approximate NLL): `get_protein_nll_fast_config()`
+
+**To use alternative configs**, you have these options:
+
+1. **Create custom config files**: Copy and modify the config files to use different functions as `get_config()`
+2. **Modify existing configs**: Edit `configs/vp/PROTEIN/indm_fid.py` to replace `get_config()` with your preferred variant
+3. **Custom training script**: Write your own script that imports these functions directly
+
+**Configuration Comparison**:
+- **Default config** (used by main.py): 256x256 maps, nf=128, designed for standard protein analysis
+- **Small config**: 128x128 maps, nf=64, similar architecture to CIFAR-10/CelebA configs  
+- **Large config**: 512x512 maps, nf=256, high-capacity model for detailed analysis
+
+#### Data Setup
+
+* Protein contact/distance maps should be stored as `.npy` files in the data directories
+* Default paths in config: `/path/to/protein/train/maps/` and `/path/to/protein/eval/maps/`
+* Update `data.train_data_path` and `data.eval_data_path` in the config files to point to your data
+* Maps are expected to be square matrices (e.g., 256x256) representing contact/distance information
+* The provided `pdb/` directory contains example protein contact maps from PDB structures
+
 
 
 ## Acknowledgements

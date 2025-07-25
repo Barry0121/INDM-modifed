@@ -1,0 +1,5 @@
+INFO - utils.py - 2025-07-24 22:58:07,351 - model parameters: 132818817
+INFO - utils.py - 2025-07-24 22:58:07,352 - total number of parameters: 132818817
+WARNING - utils.py - 2025-07-24 22:58:07,352 - No checkpoint found at outputs/protein_fid/checkpoints-meta/checkpoint.pth. Returned the same state as input
+INFO - utils.py - 2025-07-24 22:58:07,353 - No flow checkpoints, so reset score ema!!
+INFO - run_lib.py - 2025-07-24 22:58:07,364 - score model step: 0

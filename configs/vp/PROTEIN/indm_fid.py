@@ -16,6 +16,7 @@
 # Lint as: python3
 """Training NCSNv3 on Protein Contact Maps with continuous sigmas."""
 
+import torch
 from configs.default_celeba_configs import get_default_configs
 
 
@@ -29,7 +30,7 @@ def get_config():
   training.reduce_mean = True
   training.likelihood_weighting = False
   training.importance_sampling = False
-  training.batch_size = 16  # Reduced due to larger protein maps
+  training.batch_size = 2  # Very small due to 512x512 matrices
   training.n_iters = 1000000  # May need adjustment based on dataset size
   training.snapshot_freq = 50000
   training.log_freq = 50
@@ -45,39 +46,33 @@ def get_config():
   sampling.probability_flow = False
   sampling.snr = 0.16
 
-  # data - Modified for protein contact maps
+  # data - Modified for protein distance maps
   data = config.data
   data.dataset = 'PROTEIN_CONTACT_MAP'  # Custom dataset name
-  data.image_size = 256  # Typical protein map size (can be 128, 256, 512)
-  data.num_channels = 1  # Contact/distance maps are single channel
-  data.centered = True  # Center the data around 0
+  data.image_size = 512  # Our actual matrix size (512x512)
+  data.num_channels = 1  # Distance maps are single channel
+  data.centered = True  # Center the data around 0 (we normalize to [-1,1])
   data.uniform_dequantization = False  # Not needed for continuous distance maps
   data.num_epochs = None  # Infinite epochs
-  data.cache = False  # May want to enable if dataset fits in memory
+  data.cache = False  # Data is pre-loaded in memory
   data.random_flip = False  # Proteins have specific orientation
 
-  # Protein-specific data parameters
-  data.contact_threshold = 8.0  # Angstrom threshold for contact definition
+  # Protein dataset parameters
+  data.pdb_dir = 'pdb'  # Directory containing .npy files
+  data.max_samples = 1000  # Limit for testing (None for full dataset)
+  data.global_min = 0.0  # Will be calculated from actual data
+  data.global_max = 50000.0  # Will be calculated from actual data
+  data.contact_threshold = 8.0  # Angstrom threshold for contact definition (if needed)
   data.return_distance = True  # Return distance maps instead of binary contacts
-  data.max_sequence_length = 256  # Maximum protein length to consider
-  data.min_sequence_length = 50   # Minimum protein length to consider
-  data.normalize_distances = True  # Normalize distances to [0,1]
-  data.max_distance_cutoff = 50.0  # Maximum distance to consider (Angstroms)
-  data.pad_value = 1.0  # Value to use for padding (large distance)
 
-  # Data paths - Update these to your actual paths
-  data.train_data_path = '/path/to/protein/train/maps/'
-  data.eval_data_path = '/path/to/protein/eval/maps/'
-  data.tfrecords_path = None  # Not using TFRecords for protein data
-
-  # Training data statistics
-  training.num_train_data = 10000  # Update based on your dataset size
-
-  # Evaluation data statistics
+  # Training data statistics (will be updated automatically)
+  training.num_train_data = 800  # Placeholder - updated by dataset
+  
+  # Evaluation data statistics (will be updated automatically)
   eval_config = config.eval
-  eval_config.batch_size = 8  # Smaller batch size for evaluation
-  eval_config.num_samples = 1000  # Number of samples to generate for evaluation
-  eval_config.num_test_data = 1000  # Update based on your eval dataset size
+  eval_config.batch_size = 4  # Smaller batch size for 512x512 matrices
+  eval_config.num_samples = 100  # Number of samples to generate for evaluation
+  eval_config.num_test_data = 200  # Placeholder - updated by dataset
 
   # model - Adjusted for protein data
   model = config.model
@@ -166,7 +161,7 @@ def get_config():
   flow.recover = -1
 
   # Device configuration
-  config.device = 'cuda' if config.training.batch_size > 1 else 'cpu'
+  config.device = torch.device('cuda') if config.training.batch_size > 1 else torch.device('cpu')
 
   # Protein-specific evaluation metrics
   config.protein_eval = type('ProteinEval', (), {})()

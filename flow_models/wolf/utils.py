@@ -2,7 +2,7 @@ __author__ = 'max'
 
 from typing import Tuple, List
 import torch
-from torch._six import inf
+import math
 
 
 def norm(p: torch.Tensor, dim: int):
@@ -111,7 +111,7 @@ def total_grad_norm(parameters, norm_type=2):
         parameters = [parameters]
     parameters = list(filter(lambda p: p.grad is not None, parameters))
     norm_type = float(norm_type)
-    if norm_type == inf:
+    if norm_type == math.inf:
         total_norm = max(p.grad.data.abs().max() for p in parameters)
     else:
         total_norm = 0

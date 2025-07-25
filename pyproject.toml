@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools-scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "indm"
+version = "0.1.0"
+description = "Maximum Likelihood Training of Implicit Nonlinear Diffusion Model (INDM)"
+readme = "README.md"
+requires-python = ">=3.8,<3.11"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Dongjun Kim"},
+    {name = "Byeonghu Na"},
+    {name = "Se Jung Kwon"},
+    {name = "Dongsoo Lee"},
+    {name = "Wanmo Kang"},
+    {name = "Il-Chul Moon"},
+]
+keywords = ["diffusion", "generative-models", "machine-learning", "pytorch", "tensorflow"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    # Core ML libraries
+    "overrides>=3.1.0",
+    "ml-collections>=0.1.0",
+
+    # TensorFlow ecosystem
+    "tensorflow>=2.4.0",
+    "tensorflow-gan>=2.0.0",
+    "tensorflow-io",
+    "tensorflow-datasets>=3.1.0",
+    "tensorflow-addons>=0.12.0",
+    "tensorflow-probability>=0.12.0",
+    "tensorboard>=2.4.0",
+
+    # PyTorch ecosystem (let uv handle CUDA selection)
+    "torch>=1.7.0",
+    "torchvision>=0.8.0",
+    "torchaudio>=0.7.0",
+
+    # JAX
+    "jax[cuda]>=0.2.0",
+
+    # Utilities
+    "absl-py>=0.10.0",
+    "ninja",
+    "scipy",
+    "natsort",
+    "imageio",
+]
+
+[project.urls]
+Homepage = "https://github.com/Kim-Dongjun/INDM"
+Repository = "https://github.com/Kim-Dongjun/INDM"
+Paper = "https://arxiv.org/abs/2205.13699"
+
+[tool.setuptools]
+py-modules = []
