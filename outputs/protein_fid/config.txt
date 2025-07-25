@@ -69,7 +69,7 @@ flow
 > eval_batch_size: 4
 > grad_clip: 0
 > grad_in_forward: False
-> image_size: 256
+> image_size: 512
 > init_batch_size: 32
 > intermediate_dim: 512
 > local_rank: 0
@@ -77,7 +77,7 @@ flow
 > lr: 0.001
 > lr_decay: 0.999997
 > model: wolf
-> model_config: flow_models/wolf/wolf_configs/protein/256x256/glow/resflow-gaussian-uni.json
+> model_config: flow_models/wolf/wolf_configs/protein/512x512/glow/resflow-gaussian-uni.json
 > n_bits: 8
 > nblocks: 16-16
 > optim_reset: False
@@ -85,7 +85,7 @@ flow
 > recover: -1
 > resblock_type: resflow
 > seed: 65537
-> squeeze: True
+> squeeze: False
 > train_k: 1
 > valid_epochs: 1
 > warmup_steps: 500

@@ -3,3 +3,55 @@ INFO - utils.py - 2025-07-24 22:58:07,352 - total number of parameters: 13281881
 WARNING - utils.py - 2025-07-24 22:58:07,352 - No checkpoint found at outputs/protein_fid/checkpoints-meta/checkpoint.pth. Returned the same state as input
 INFO - utils.py - 2025-07-24 22:58:07,353 - No flow checkpoints, so reset score ema!!
 INFO - run_lib.py - 2025-07-24 22:58:07,364 - score model step: 0
+INFO - utils.py - 2025-07-24 23:10:57,009 - model parameters: 132818817
+INFO - utils.py - 2025-07-24 23:10:57,009 - total number of parameters: 132818817
+WARNING - utils.py - 2025-07-24 23:10:57,009 - No checkpoint found at outputs/protein_fid/checkpoints-meta/checkpoint.pth. Returned the same state as input
+INFO - utils.py - 2025-07-24 23:10:57,010 - No flow checkpoints, so reset score ema!!
+INFO - run_lib.py - 2025-07-24 23:10:57,021 - score model step: 0
+INFO - utils.py - 2025-07-24 23:10:57,151 - model parameters: 19624976.0
+INFO - utils.py - 2025-07-24 23:10:57,152 - total number of parameters: 19624976.0
+WARNING - utils.py - 2025-07-24 23:10:57,152 - No checkpoint found at outputs/protein_fid/checkpoints-meta/flow_checkpoint.pth. Returned the same state as input
+INFO - run_lib.py - 2025-07-24 23:10:57,152 - loading PROTEIN_CONTACT_MAP...
+INFO - run_lib.py - 2025-07-24 23:11:06,457 - Starting training loop at step 0.
+INFO - datasets.py - 2025-07-24 23:11:06,466 - New Epoch Start
+INFO - utils.py - 2025-07-24 23:23:20,161 - model parameters: 132818817
+INFO - utils.py - 2025-07-24 23:23:20,161 - total number of parameters: 132818817
+WARNING - utils.py - 2025-07-24 23:23:20,161 - No checkpoint found at outputs/protein_fid/checkpoints-meta/checkpoint.pth. Returned the same state as input
+INFO - utils.py - 2025-07-24 23:23:20,162 - No flow checkpoints, so reset score ema!!
+INFO - run_lib.py - 2025-07-24 23:23:20,173 - score model step: 0
+INFO - utils.py - 2025-07-24 23:23:20,303 - model parameters: 19624976.0
+INFO - utils.py - 2025-07-24 23:23:20,304 - total number of parameters: 19624976.0
+WARNING - utils.py - 2025-07-24 23:23:20,304 - No checkpoint found at outputs/protein_fid/checkpoints-meta/flow_checkpoint.pth. Returned the same state as input
+INFO - run_lib.py - 2025-07-24 23:23:20,304 - loading PROTEIN_CONTACT_MAP...
+INFO - run_lib.py - 2025-07-24 23:23:28,759 - Starting training loop at step 0.
+INFO - datasets.py - 2025-07-24 23:23:28,770 - New Epoch Start
+INFO - utils.py - 2025-07-24 23:26:50,233 - model parameters: 132818817
+INFO - utils.py - 2025-07-24 23:26:50,233 - total number of parameters: 132818817
+WARNING - utils.py - 2025-07-24 23:26:50,234 - No checkpoint found at outputs/protein_fid/checkpoints-meta/checkpoint.pth. Returned the same state as input
+INFO - utils.py - 2025-07-24 23:26:50,234 - No flow checkpoints, so reset score ema!!
+INFO - run_lib.py - 2025-07-24 23:26:50,246 - score model step: 0
+INFO - utils.py - 2025-07-24 23:26:50,376 - model parameters: 19624976.0
+INFO - utils.py - 2025-07-24 23:26:50,377 - total number of parameters: 19624976.0
+WARNING - utils.py - 2025-07-24 23:26:50,377 - No checkpoint found at outputs/protein_fid/checkpoints-meta/flow_checkpoint.pth. Returned the same state as input
+INFO - run_lib.py - 2025-07-24 23:26:50,377 - loading PROTEIN_CONTACT_MAP...
+INFO - run_lib.py - 2025-07-24 23:26:58,962 - Starting training loop at step 0.
+INFO - utils.py - 2025-07-25 08:18:18,188 - model parameters: 132818817
+INFO - utils.py - 2025-07-25 08:18:18,189 - total number of parameters: 132818817
+WARNING - utils.py - 2025-07-25 08:18:18,189 - No checkpoint found at outputs/protein_fid/checkpoints-meta/checkpoint.pth. Returned the same state as input
+INFO - utils.py - 2025-07-25 08:18:18,190 - No flow checkpoints, so reset score ema!!
+INFO - run_lib.py - 2025-07-25 08:18:18,201 - score model step: 0
+INFO - utils.py - 2025-07-25 08:18:18,323 - model parameters: 17412896.0
+INFO - utils.py - 2025-07-25 08:18:18,323 - total number of parameters: 17412896.0
+WARNING - utils.py - 2025-07-25 08:18:18,323 - No checkpoint found at outputs/protein_fid/checkpoints-meta/flow_checkpoint.pth. Returned the same state as input
+INFO - run_lib.py - 2025-07-25 08:18:18,323 - loading PROTEIN_CONTACT_MAP...
+INFO - run_lib.py - 2025-07-25 08:18:26,896 - Starting training loop at step 0.
+INFO - utils.py - 2025-07-25 08:23:37,633 - model parameters: 132818817
+INFO - utils.py - 2025-07-25 08:23:37,633 - total number of parameters: 132818817
+WARNING - utils.py - 2025-07-25 08:23:37,633 - No checkpoint found at outputs/protein_fid/checkpoints-meta/checkpoint.pth. Returned the same state as input
+INFO - utils.py - 2025-07-25 08:23:37,634 - No flow checkpoints, so reset score ema!!
+INFO - run_lib.py - 2025-07-25 08:23:37,646 - score model step: 0
+INFO - utils.py - 2025-07-25 08:23:37,798 - model parameters: 23377456.0
+INFO - utils.py - 2025-07-25 08:23:37,798 - total number of parameters: 23377456.0
+WARNING - utils.py - 2025-07-25 08:23:37,798 - No checkpoint found at outputs/protein_fid/checkpoints-meta/flow_checkpoint.pth. Returned the same state as input
+INFO - run_lib.py - 2025-07-25 08:23:37,798 - loading PROTEIN_CONTACT_MAP...
+INFO - run_lib.py - 2025-07-25 08:23:46,628 - Starting training loop at step 0.

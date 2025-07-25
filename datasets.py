@@ -446,6 +446,9 @@ def get_batch_(config, batch):
       batch = batch[0]#.to(config.device)
     elif config.data.dataset in ['IMAGENET32', 'IMAGENET64']:
       batch = batch#.to(config.device)
+    elif config.data.dataset == 'PROTEIN_CONTACT_MAP':
+      # For protein contact maps, batch is a tuple (tensors, filenames) from DataLoader
+      batch = batch[0]  # Extract just the tensor part, ignore filenames
     else:
       batch = torch.from_numpy(batch['image']._numpy()).float()#.to(config.device).float()
       batch = batch.permute(0, 3, 1, 2)

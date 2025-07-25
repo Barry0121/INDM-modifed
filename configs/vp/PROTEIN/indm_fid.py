@@ -133,7 +133,8 @@ def get_config():
   flow.nblocks = '16-16'
   flow.intermediate_dim = 512
   flow.resblock_type = 'resflow'
-  flow.model_config = 'flow_models/wolf/wolf_configs/protein/256x256/glow/resflow-gaussian-uni.json'
+  flow.squeeze = False  # Disable squeeze to keep 1-channel input
+  flow.model_config = 'flow_models/wolf/wolf_configs/protein/512x512/glow/resflow-gaussian-uni.json'
   flow.rank = 1
   flow.local_rank = 0
   flow.batch_size = 16  # Reduced for protein maps
@@ -155,7 +156,7 @@ def get_config():
   flow.grad_clip = 0
   flow.dataset = 'protein_contact_map'
   flow.category = None
-  flow.image_size = 256
+  flow.image_size = 512  # Match data.image_size since squeeze is disabled
   flow.workers = 4
   flow.n_bits = 8
   flow.recover = -1

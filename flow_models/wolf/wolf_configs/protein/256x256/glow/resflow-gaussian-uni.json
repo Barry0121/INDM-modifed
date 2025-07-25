@@ -1,0 +1,33 @@
+{
+  "generator": {
+    "flow": {
+      "type": "resflow"
+    }
+  },
+  "discriminator" : {
+    "type": "gaussian",
+    "encoder": {
+      "type": "global_resnet_bn",
+      "levels": 3,
+      "in_planes": 1,
+      "hidden_planes": [64, 128, 128],
+      "out_planes": 16,
+      "activation": "elu"
+    },
+    "in_dim": 256,
+    "dim": 128,
+    "prior": {
+      "type": "flow",
+      "num_steps": 4,
+      "in_features": 128,
+      "hidden_features": 512,
+      "activation": "elu",
+      "transform": "affine",
+      "alpha": 1.0,
+      "coupling_type": "mlp"
+    }
+  },
+  "dequantizer": {
+    "type": "uniform"
+  }
+}
