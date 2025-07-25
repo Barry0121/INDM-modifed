@@ -49,7 +49,7 @@ def get_config():
   # data - Modified for protein distance maps
   data = config.data
   data.dataset = 'PROTEIN_CONTACT_MAP'  # Custom dataset name
-  data.image_size = 512  # Our actual matrix size (512x512)
+  data.image_size = 32  # Our actual matrix size (32x32 - first 32 residues)
   data.num_channels = 1  # Distance maps are single channel
   data.centered = True  # Center the data around 0 (we normalize to [-1,1])
   data.uniform_dequantization = False  # Not needed for continuous distance maps
@@ -134,7 +134,7 @@ def get_config():
   flow.intermediate_dim = 512
   flow.resblock_type = 'resflow'
   flow.squeeze = False  # Disable squeeze to keep 1-channel input
-  flow.model_config = 'flow_models/wolf/wolf_configs/protein/512x512/glow/resflow-gaussian-uni.json'
+  flow.model_config = 'flow_models/wolf/wolf_configs/protein/32x32/glow/resflow-gaussian-uni.json'
   flow.rank = 1
   flow.local_rank = 0
   flow.batch_size = 16  # Reduced for protein maps
@@ -156,7 +156,7 @@ def get_config():
   flow.grad_clip = 0
   flow.dataset = 'protein_contact_map'
   flow.category = None
-  flow.image_size = 512  # Match data.image_size since squeeze is disabled
+  flow.image_size = 32  # Match data.image_size since squeeze is disabled
   flow.workers = 4
   flow.n_bits = 8
   flow.recover = -1

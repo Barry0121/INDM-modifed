@@ -17,19 +17,19 @@ def process_distance_matrix(filepath, target_size=512):
         target_size: Target matrix size (512x512)
     
     Returns:
-        Processed matrix of shape (512, 512) or None if too large
+        Processed matrix of shape (target_size, target_size) or None if error
     """
     try:
         matrix = np.load(filepath)
         
-        # Skip if matrix is larger than target size
+        # Truncate if matrix is larger than target size (take top-left portion)
         if matrix.shape[0] > target_size or matrix.shape[1] > target_size:
-            return None
+            matrix = matrix[:target_size, :target_size]
             
         # Create padded matrix filled with zeros
         padded_matrix = np.zeros((target_size, target_size), dtype=np.float32)
         
-        # Copy original matrix to top-left corner
+        # Copy matrix to top-left corner (handles both truncated and original matrices)
         rows, cols = matrix.shape
         padded_matrix[:rows, :cols] = matrix.astype(np.float32)
         
@@ -42,6 +42,7 @@ def process_distance_matrix(filepath, target_size=512):
 def scan_and_process_files(pdb_dir, batch_size=1000, target_size=512, max_samples=None):
     """
     Scan all .npy files and process them in batches.
+    Large matrices are truncated, small matrices are padded.
     
     Args:
         pdb_dir: Directory containing .npy files
@@ -67,7 +68,7 @@ def scan_and_process_files(pdb_dir, batch_size=1000, target_size=512, max_sample
     global_min = float('inf')
     global_max = float('-inf')
     processed_count = 0
-    skipped_count = 0
+    error_count = 0
     
     # Process files in batches
     for i in tqdm(range(0, len(npy_files), batch_size), desc="Processing batches"):
@@ -91,19 +92,19 @@ def scan_and_process_files(pdb_dir, batch_size=1000, target_size=512, max_sample
                 
                 processed_count += 1
             else:
-                skipped_count += 1
+                error_count += 1
         
         # Add batch to all matrices
         all_matrices.extend(batch_matrices)
         
         # Print progress
         if i % (batch_size * 10) == 0:
-            print(f"Processed: {processed_count}, Skipped: {skipped_count}, "
+            print(f"Processed: {processed_count}, Errors: {error_count}, "
                   f"Current global min/max: {global_min:.3f}/{global_max:.3f}")
     
     print(f"\nFinal stats:")
     print(f"Total processed: {processed_count}")
-    print(f"Total skipped (too large): {skipped_count}")
+    print(f"Total errors: {error_count}")
     print(f"Global min/max: {global_min:.3f}/{global_max:.3f}")
     
     return all_matrices, global_min, global_max

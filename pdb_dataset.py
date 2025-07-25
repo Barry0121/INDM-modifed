@@ -10,7 +10,8 @@ from torch.utils.data import Dataset
 def to_tensor(x):
     """Convert numpy array to torch tensor."""
     if isinstance(x, np.ndarray):
-        return torch.tensor(x)
+        # Use torch.tensor to create a copy and avoid NumPy compatibility issues
+        return torch.tensor(x.tolist(), dtype=torch.float32)
     return x
 
 def scale_img(x):

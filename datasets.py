@@ -94,7 +94,7 @@ class ProteinContactMapDataset(torch.utils.data.Dataset):
         max_samples: Optional[int] = None
     ):
         from tqdm import tqdm
-        
+
         self.main_dir = main_dir
         self.transform = transform
         self.max_length = max_length
@@ -177,10 +177,10 @@ class ProteinContactMapDataset(torch.utils.data.Dataset):
         print(f"Successfully loaded:")
         print(f"  Training matrices: {len(self.train_matrices) if hasattr(self, 'train_matrices') and self.train_matrices is not None and len(self.train_matrices) > 0 else 0}")
         print(f"  Evaluation matrices: {len(self.eval_matrices) if hasattr(self, 'eval_matrices') and self.eval_matrices is not None and len(self.eval_matrices) > 0 else 0}")
-        
+
         if hasattr(self, 'train_matrices') and self.train_matrices is not None and len(self.train_matrices) > 0:
             print(f"  Matrix shape: {self.train_matrices[0].shape}")
-            
+
         # Calculate memory usage
         total_memory = 0
         if hasattr(self, 'train_matrices') and self.train_matrices is not None and len(self.train_matrices) > 0:
@@ -192,30 +192,30 @@ class ProteinContactMapDataset(torch.utils.data.Dataset):
     def _load_and_process_file(self, file_path: str) -> Optional[np.ndarray]:
         """
         Load and process a single distance matrix file.
-        
+
         Args:
             file_path: Path to .npy file
-            
+
         Returns:
             Processed matrix of shape (max_length, max_length) or None if error
         """
         try:
             # Load the distance map
             distance_map = np.load(file_path)
-            
+
             # Ensure it's a square matrix
             if distance_map.shape[0] != distance_map.shape[1]:
                 print(f"Warning: Distance map must be square, got shape {distance_map.shape}, skipping {file_path}")
                 return None
-            
+
             # Skip if matrix is larger than max_length
             if self.max_length and (distance_map.shape[0] > self.max_length or distance_map.shape[1] > self.max_length):
                 return None
-            
+
             # Handle sequence length constraints with PDB-style padding
             if self.max_length is not None:
                 distance_map = self._handle_length_constraint_pdb_style(distance_map)
-            
+
             # Convert to contact map if requested
             if not self.return_distance:
                 # Convert distance to binary contact map
@@ -225,12 +225,12 @@ class ProteinContactMapDataset(torch.utils.data.Dataset):
                 processed_map = contact_map
             else:
                 processed_map = distance_map.astype(np.float32)
-            
+
             # Apply normalization
             processed_map = self.normalize_tensor(processed_map)
-            
+
             return processed_map
-            
+
         except Exception as e:
             print(f"Error processing {file_path}: {e}")
             return None
@@ -278,7 +278,7 @@ class ProteinContactMapDataset(torch.utils.data.Dataset):
 
         # Convert to tensor
         tensor_map = torch.from_numpy(processed_map)
-        
+
         # Add channel dimension [1, L, L] for compatibility with training pipeline
         tensor_map = tensor_map.unsqueeze(0)
 
@@ -291,18 +291,20 @@ class ProteinContactMapDataset(torch.utils.data.Dataset):
     def _handle_length_constraint_pdb_style(self, distance_map: np.ndarray) -> np.ndarray:
         """Handle padding/cropping with PDB-style approach: pad with pad_value, copy from top-left"""
         current_length = distance_map.shape[0]
-        
+
         if current_length == self.max_length:
             return distance_map
-        
-        # Create output matrix filled with pad_value
-        output_matrix = np.full((self.max_length, self.max_length), self.pad_value, dtype=np.float32)
-        
-        # Copy available data to top-left corner (like PDB implementation)
-        copy_size = min(current_length, self.max_length)
-        output_matrix[:copy_size, :copy_size] = distance_map[:copy_size, :copy_size]
-        
-        return output_matrix
+
+        # For protein data, we typically want to crop to the first N residues
+        # rather than pad, since we're interested in the core structure
+        if current_length >= self.max_length:
+            # Crop to first max_length x max_length submatrix
+            return distance_map[:self.max_length, :self.max_length].astype(np.float32)
+        else:
+            # Only pad if absolutely necessary (sequence shorter than max_length)
+            output_matrix = np.full((self.max_length, self.max_length), self.pad_value, dtype=np.float32)
+            output_matrix[:current_length, :current_length] = distance_map
+            return output_matrix
 
     def _handle_length_constraint(self, distance_map: np.ndarray) -> np.ndarray:
         """Handle padding or cropping based on max_length constraint."""
@@ -432,8 +434,16 @@ def central_crop(image, size):
 def get_batch(config, data_iter, data):
   try:
     batch = get_batch_(config, next(data_iter))
-  except:
-    logging.info('New Epoch Start')
+  except StopIteration:
+    # Only log epoch start occasionally to avoid spam
+    if not hasattr(get_batch, '_epoch_count'):
+      get_batch._epoch_count = 0
+    get_batch._epoch_count += 1
+
+    # Log every 10 epochs instead of every batch
+    if get_batch._epoch_count % 10 == 1:
+      logging.info(f'New Epoch Start (epoch {get_batch._epoch_count})')
+
     data_iter = iter(data)
     batch = get_batch_(config, next(data_iter))
   return batch, data_iter
@@ -449,6 +459,10 @@ def get_batch_(config, batch):
     elif config.data.dataset == 'PROTEIN_CONTACT_MAP':
       # For protein contact maps, batch is a tuple (tensors, filenames) from DataLoader
       batch = batch[0]  # Extract just the tensor part, ignore filenames
+      # Debug: Print actual batch shape
+      # print(f"DEBUG: Protein batch shape after extraction: {batch.shape}")
+      # print(f"DEBUG: Expected shape: ({batch.shape[0]}, {config.data.num_channels}, {config.data.image_size}, {config.data.image_size})")
+      batch = batch.unsqueeze(dim=1) if batch.ndim == 3 else batch
     else:
       batch = torch.from_numpy(batch['image']._numpy()).float()#.to(config.device).float()
       batch = batch.permute(0, 3, 1, 2)
@@ -496,68 +510,40 @@ def get_dataset_from_torch(config):
                                            pin_memory=True, num_workers=8, drop_last=True)
     eval_ds = torch.utils.data.DataLoader(eval_data, batch_size=config.eval.batch_size, shuffle=False, pin_memory=True,
                                           num_workers=1, drop_last=False)
-                                          
+
   elif config.data.dataset == 'PROTEIN_CONTACT_MAP':
-    # Get dataset parameters from config
-    pdb_dir = getattr(config.data, 'pdb_dir', 'pdb')
-    max_samples = getattr(config.data, 'max_samples', None)
-    
-    # Calculate global min/max if provided, otherwise use defaults
-    global_min = getattr(config.data, 'global_min', 0.0)
-    global_max = getattr(config.data, 'global_max', 50000.0)
-    
-    print(f"Loading protein dataset from: {pdb_dir}")
-    print(f"Using normalization range: [{global_min:.3f}, {global_max:.3f}]")
-    
-    # Create train dataset
-    train_data = ProteinContactMapDataset(
-        main_dir=pdb_dir,
-        max_length=config.data.image_size,
-        train=True,
-        train_ratio=0.8,
-        seed=42,
-        return_distance=True,
-        minv=global_min,
-        maxv=global_max,
-        pad_value=0.0,
-        max_samples=max_samples
-    )
-    
-    # Create eval dataset  
-    eval_data = ProteinContactMapDataset(
-        main_dir=pdb_dir,
-        max_length=config.data.image_size,
-        train=False,
-        train_ratio=0.8,
-        seed=42,
-        return_distance=True,
-        minv=global_min,
-        maxv=global_max,
-        pad_value=0.0,
-        max_samples=max_samples
-    )
-    
-    print(f"Train dataset size: {len(train_data)}")
-    print(f"Eval dataset size: {len(eval_data)}")
-    
+    # Import PDB dataset class for consolidated .npz data loading
+    from pdb_dataset import PDB
+
+    print(f"Loading protein dataset from consolidated .npz file...")
+    print(f"Dataset will be loaded from: data/pdb/distance_matrices.npz")
+
+    # Create train dataset using PDB class
+    train_data = PDB(train=True)
+
+    # Create eval dataset using PDB class
+    eval_data = PDB(train=False)
+
+    print(f"Training samples: {len(train_data)}, Evaluation samples: {len(eval_data)}")
+
     # Create data loaders
     train_ds = torch.utils.data.DataLoader(
-        train_data, 
-        batch_size=config.training.batch_size, 
+        train_data,
+        batch_size=config.training.batch_size,
         shuffle=True,
-        pin_memory=True, 
+        pin_memory=True,
         num_workers=2,  # Reduced since data is pre-loaded
         drop_last=True
     )
     eval_ds = torch.utils.data.DataLoader(
-        eval_data, 
-        batch_size=config.eval.batch_size, 
-        shuffle=False, 
+        eval_data,
+        batch_size=config.eval.batch_size,
+        shuffle=False,
         pin_memory=True,
-        num_workers=1, 
+        num_workers=1,
         drop_last=False
     )
-    
+
   return train_ds, eval_ds
 
 def get_dataset_from_tf(config, evaluation=False):
