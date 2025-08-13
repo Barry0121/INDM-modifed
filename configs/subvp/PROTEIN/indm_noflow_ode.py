@@ -31,10 +31,11 @@ def get_config():
   training.likelihood_weighting = True
   training.importance_sampling = True
   training.batch_size = 128  # Very small due to 32x32 matrices
-  training.n_iters = 20005  # Reduced for fast testing - successful runs show good FID within 20k steps
-  training.snapshot_freq = 10000
+  training.n_iters = 10000  # Further reduced for quick testing
+  training.snapshot_freq = 5000
   training.log_freq = 500
-  training.eval_freq = 10000
+  training.eval_freq = 5000
+  training.snapshot_freq_for_preemption = 5000  # Override default 10000 to enable sampling every 5000 steps
 
   # sampling
   sampling = config.sampling
@@ -176,7 +177,7 @@ def get_config():
 
   # Checkpointing
   config.checkpoint_dir = './checkpoints/protein_contact_maps_subvp_noflow/'
-  config.checkpoint_freq = 10000
+  config.checkpoint_freq = 5000
   config.keep_checkpoint_max = 5
 
   # Logging

@@ -31,10 +31,11 @@ def get_config():
   training.likelihood_weighting = True
   training.importance_sampling = True
   training.batch_size = 128  # Very small due to 32x32 matrices
-  training.n_iters = 20005  # Reduced for fast testing - successful runs show good FID within 20k steps
-  training.snapshot_freq = 10000
-  training.log_freq = 500
-  training.eval_freq = 10000
+  training.n_iters = 2005  # Further reduced for quick testing
+  training.snapshot_freq = 1000
+  training.log_freq = 100
+  training.eval_freq = 1000
+  training.snapshot_freq_for_preemption = 1000  # Override default 10000 to enable sampling every 5000 steps
 
   # sampling
   sampling = config.sampling
@@ -103,6 +104,10 @@ def get_config():
   model.conv_size = 3
   model.dropout = 0.1  # Add dropout for regularization
 
+  # VE SDE parameters adjusted for protein data in [0,1] range
+  model.sigma_max = 20.0  # Reduced from 90.0 - appropriate for [0,1] data
+  model.sigma_min = 0.01  # Keep existing value, appropriate for [0,1] scale
+
   # Protein-specific model parameters
   model.symmetric_loss = True  # Enforce symmetry in protein contact maps
   model.contact_map_loss_weight = 1.0  # Weight for contact map specific losses
@@ -168,7 +173,7 @@ def get_config():
 
   # Checkpointing
   config.checkpoint_dir = './checkpoints/protein_contact_maps_ve_noflow/'
-  config.checkpoint_freq = 10000
+  config.checkpoint_freq = 5000
   config.keep_checkpoint_max = 5
 
   # Logging

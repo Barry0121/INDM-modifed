@@ -59,12 +59,18 @@ class PDB(TVData):
         print(f"Loading PDB dataset from {self.file_path}...")
         data = np.load(self.file_path)
         self.distance_matrices = data["distance_matrices"].astype(np.float32)
-        self.global_min = float(data["global_min"])
-        self.global_max = float(data["global_max"])
+        stored_global_min = float(data["global_min"])
+        stored_global_max = float(data["global_max"])
         num_samples = int(data["num_samples"])
         
+        # Use actual min and robust max (99.95% percentile) for better normalization
+        # This avoids outliers skewing the normalization range
+        self.global_min = float(np.min(self.distance_matrices))
+        self.global_max = float(np.percentile(self.distance_matrices, 99.95))
+        
         print(f"Loaded {num_samples} distance matrices of shape {self.distance_matrices.shape[1:]}")
-        print(f"Global min/max: {self.global_min:.3f}/{self.global_max:.3f}")
+        print(f"Stored min/max: {stored_global_min:.3f}/{stored_global_max:.3f}")
+        print(f"Actual min/max: {self.global_min:.3f}/{self.global_max:.3f}")
         
         # Create train/val split
         np.random.seed(self.seed)
@@ -97,8 +103,9 @@ class PDB(TVData):
     
     def normalize_tensor(self, tensor):
         """Normalize tensor based on config settings."""
-        # First normalize to [0, 1] using global min/max
-        normalized_01 = (tensor - self.global_min) / (self.global_max - self.global_min)
+        # First clip outliers, then normalize to [0, 1] using global min/max
+        clipped_tensor = np.clip(tensor, self.global_min, self.global_max)
+        normalized_01 = (clipped_tensor - self.global_min) / (self.global_max - self.global_min)
         
         # Then scale based on config.data.centered setting
         if self.config and hasattr(self.config.data, 'centered') and not self.config.data.centered:
