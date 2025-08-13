@@ -701,31 +701,14 @@ def compute_protein_diversity_coverage(real_data, fake_data, config, nearest_k=5
       real_data = real_data[:, :min_features]
       fake_data = fake_data[:, :min_features]
 
-  # Conditional normalization based on SDE type
-  if config.training.sde == 'vesde':  # VE
-    logging.info("Using min-max normalization to [0,1] for VE SDE")
-    # Use min-max normalization to [0,1] for VE
-    real_min, real_max = np.min(real_data), np.max(real_data)
-    fake_min, fake_max = np.min(fake_data), np.max(fake_data)
-    
-    if real_max > real_min:
-      real_data_norm = (real_data - real_min) / (real_max - real_min)
-    else:
-      real_data_norm = np.ones_like(real_data) * 0.5
-      
-    if fake_max > fake_min:
-      fake_data_norm = (fake_data - fake_min) / (fake_max - fake_min)
-    else:
-      fake_data_norm = np.ones_like(fake_data) * 0.5
-  else:  # VP and SubVP
-    logging.info(f"Using mean/std normalization for {config.training.sde} SDE")
-    # Use mean/std normalization (current working approach)
-    real_mean = np.mean(real_data, axis=0)
-    real_std = np.std(real_data, axis=0) + 1e-8
-    fake_mean = np.mean(fake_data, axis=0)
-    fake_std = np.std(fake_data, axis=0) + 1e-8
-    real_data_norm = (real_data - real_mean) / real_std
-    fake_data_norm = (fake_data - fake_mean) / fake_std
+  # Use mean/std normalization for all SDE types (VP, SubVP, VE)
+  logging.info(f"Using mean/std normalization for {config.training.sde} SDE")
+  real_mean = np.mean(real_data, axis=0)
+  real_std = np.std(real_data, axis=0) + 1e-8
+  fake_mean = np.mean(fake_data, axis=0)
+  fake_std = np.std(fake_data, axis=0) + 1e-8
+  real_data_norm = (real_data - real_mean) / real_std
+  fake_data_norm = (fake_data - fake_mean) / fake_std
 
   try:
     logging.debug(f"Computing PRDC with real_data shape: {real_data_norm.shape}, fake_data shape: {fake_data_norm.shape}")

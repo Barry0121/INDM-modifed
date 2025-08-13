@@ -52,7 +52,7 @@ def get_config():
   data.dataset = 'PROTEIN_CONTACT_MAP'  # Custom dataset name
   data.image_size = 32  # Our actual matrix size (32x32 - first 32 residues)
   data.num_channels = 1  # Distance maps are single channel
-  data.centered = False  # VE SDE works better with [0,1] normalization
+  data.centered = True  # Center the data around 0 (we normalize to [-1,1])
   data.uniform_dequantization = False  # Not needed for continuous distance maps
   data.num_epochs = None  # Infinite epochs
   data.cache = False  # Data is pre-loaded in memory
@@ -74,7 +74,7 @@ def get_config():
   eval_config.batch_size = 50  # Batch size for evaluation
   eval_config.num_samples = 1000  # Number of samples to generate for evaluation
   eval_config.num_test_data = 200  # Placeholder - updated by dataset
-  eval_config.enable_bpd = True  # Disable likelihood (NLL/NELBO) calculation
+  eval_config.enable_bpd = False  # Disable likelihood (NLL/NELBO) calculation
   eval_config.enable_loss = False  # Disable loss evaluation
   eval_config.num_nelbo = 1  # Disable NELBO evaluations
 
