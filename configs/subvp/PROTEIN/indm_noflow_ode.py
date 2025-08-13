@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Training NCSNv3 on Protein Contact Maps with continuous sigmas."""
+"""Training NCSNv3 on Protein Contact Maps with sub-VP SDE - No Flow Model."""
 
 import torch
 from configs.default_celeba_configs import get_default_configs
@@ -25,15 +25,15 @@ def get_config():
 
   # training
   training = config.training
-  training.sde = 'vpsde'
+  training.sde = 'subvpsde'
   training.continuous = True
   training.reduce_mean = True
-  training.likelihood_weighting = False
-  training.importance_sampling = False
-  training.batch_size = 2  # Very small due to 512x512 matrices
-  training.n_iters = 1000000  # May need adjustment based on dataset size
-  training.snapshot_freq = 50000
-  training.log_freq = 50
+  training.likelihood_weighting = True
+  training.importance_sampling = True
+  training.batch_size = 128  # Very small due to 32x32 matrices
+  training.n_iters = 20005  # Reduced for fast testing - successful runs show good FID within 20k steps
+  training.snapshot_freq = 10000
+  training.log_freq = 500
   training.eval_freq = 10000
 
   # sampling
@@ -67,17 +67,20 @@ def get_config():
 
   # Training data statistics (will be updated automatically)
   training.num_train_data = 800  # Placeholder - updated by dataset
-  
+
   # Evaluation data statistics (will be updated automatically)
   eval_config = config.eval
-  eval_config.batch_size = 4  # Smaller batch size for 512x512 matrices
-  eval_config.num_samples = 100  # Number of samples to generate for evaluation
+  eval_config.batch_size = 50  # Batch size for evaluation
+  eval_config.num_samples = 1000  # Number of samples to generate for evaluation
   eval_config.num_test_data = 200  # Placeholder - updated by dataset
+  eval_config.enable_bpd = True  # Disable likelihood (NLL/NELBO) calculation
+  eval_config.enable_loss = False  # Disable loss evaluation
+  eval_config.num_nelbo = 1  # Disable NELBO evaluations
 
-  # model - Adjusted for protein data
+  # model - Adjusted for protein data with sub-VP specific settings
   model = config.model
   model.name = 'ncsnpp'
-  model.scale_by_sigma = False
+  model.scale_by_sigma = False  # Similar to VP SDE
   model.ema_rate = 0.9999
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
@@ -117,16 +120,16 @@ def get_config():
   optim.warmup = 5000
   optim.grad_clip = 1.0
 
-  # SDE settings
+  # SDE settings - Important for sub-VP SDE
   sde = config.sde if hasattr(config, 'sde') else type('SDE', (), {})()
   sde.beta_min = 0.1
   sde.beta_max = 20.0
   sde.num_scales = 1000
   config.sde = sde
 
-  # flow - Keep similar but adjust for protein data
+  # flow - Identity flow model (no flow)
   flow = config.flow
-  flow.model = 'wolf'
+  flow.model = 'identity'
   flow.lr = 1e-3
   flow.ema_rate = 0.999
   flow.optim_reset = False
@@ -134,7 +137,6 @@ def get_config():
   flow.intermediate_dim = 512
   flow.resblock_type = 'resflow'
   flow.squeeze = False  # Disable squeeze to keep 1-channel input
-  flow.model_config = 'flow_models/wolf/wolf_configs/protein/32x32/glow/resflow-gaussian-uni.json'
   flow.rank = 1
   flow.local_rank = 0
   flow.batch_size = 16  # Reduced for protein maps
@@ -173,13 +175,13 @@ def get_config():
   config.protein_eval.precision_thresholds = ['L/10', 'L/5', 'L/2', 'L']  # Top L/x contacts
 
   # Checkpointing
-  config.checkpoint_dir = './checkpoints/protein_contact_maps/'
+  config.checkpoint_dir = './checkpoints/protein_contact_maps_subvp_noflow/'
   config.checkpoint_freq = 10000
   config.keep_checkpoint_max = 5
 
   # Logging
-  config.log_dir = './logs/protein_contact_maps/'
-  config.wandb_project = 'protein-diffusion'  # For Weights & Biases logging
+  config.log_dir = './logs/protein_contact_maps_subvp_noflow/'
+  config.wandb_project = 'protein-diffusion-subvp-noflow'  # For Weights & Biases logging
   config.wandb_entity = None  # Your W&B username/team
 
   return config

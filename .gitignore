@@ -24,3 +24,7 @@ dist/
 *.npz
 *.pth
 *.npy
+*.txt
+
+/outputs
+

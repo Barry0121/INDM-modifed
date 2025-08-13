@@ -51,6 +51,15 @@ def train(config, workdir, assetdir):
   tb_dir = os.path.join(workdir, "tensorboard")
   tf.io.gfile.makedirs(tb_dir)
 
+  # Initialize tensorboard writer
+  try:
+    from torch.utils.tensorboard import SummaryWriter
+    tb_writer = SummaryWriter(tb_dir)
+    logging.info(f"Tensorboard logging enabled at {tb_dir}")
+  except ImportError:
+    tb_writer = None
+    logging.warning("torch.utils.tensorboard not available, skipping tensorboard logging")
+
   # Initialize model.
   state, score_model, ema, checkpoint_dir, checkpoint_meta_dir = utils.load_model(config, workdir)
   logging.info(f'score model step: {int(state["step"])}')
@@ -83,27 +92,63 @@ def train(config, workdir, assetdir):
 
     # Convert data to JAX arrays and normalize them. Use ._numpy() to avoid copy.
     batch, train_iter = datasets.get_batch(config, train_iter, train_ds)
-    batch = (255. * batch + torch.rand_like(batch)) / 256.
+    
+    # Apply dequantization only for image data, not continuous protein data
+    if config.data.dataset != 'PROTEIN_CONTACT_MAP':
+        batch = (255. * batch + torch.rand_like(batch)) / 256.
+    
     batch = scaler(batch)
 
     # Execute one training step
     losses, losses_score, losses_flow, losses_logp = train_step_fn(state, flow_state, batch)
     if step % config.training.log_freq == 0:
       if config.flow.model == 'identity':
-        logging.info("step: %d, training loss mean: %.5e, training loss std: %.5e" % (step, torch.mean(losses).item(), torch.std(losses).item()))
+        loss_mean = torch.mean(losses).item()
+        loss_std = torch.std(losses).item()
+        logging.info("step: %d, training loss mean: %.5e, training loss std: %.5e" % (step, loss_mean, loss_std))
+
+        # Tensorboard logging
+        if tb_writer is not None:
+          tb_writer.add_scalar('Training/Loss_Mean', loss_mean, step)
+          tb_writer.add_scalar('Training/Loss_Std', loss_std, step)
       else:
+        loss_mean = torch.mean(losses).item()
+        score_loss_mean = torch.mean(losses_score).item()
+        flow_loss_mean = torch.mean(losses_flow).item()
+        logp_mean = torch.mean(losses_logp).item()
+        loss_std = torch.std(losses).item()
+        score_loss_std = torch.std(losses_score).item()
+        flow_loss_std = torch.std(losses_flow).item()
+        logp_std = torch.std(losses_logp).item()
+
         logging.info("step: %d, loss mean: %.5e, score loss mean: %.5e, flow loss mean: %.5e, logp mean: %.5e"
-                     % (step, torch.mean(losses).item(), torch.mean(losses_score).item(),
-                        torch.mean(losses_flow).item(), torch.mean(losses_logp).item()))
+                     % (step, loss_mean, score_loss_mean, flow_loss_mean, logp_mean))
         logging.info("step: %d, loss std: %.5e, score loss std: %.5e, flow loss std: %.5e, logp std: %.5e"
-                    % (step, torch.std(losses).item(), torch.std(losses_score).item(),
-                       torch.std(losses_flow).item(), torch.std(losses_logp).item()))
+                    % (step, loss_std, score_loss_std, flow_loss_std, logp_std))
+
+        # Tensorboard logging
+        if tb_writer is not None:
+          tb_writer.add_scalar('Training/Loss_Mean', loss_mean, step)
+          tb_writer.add_scalar('Training/Score_Loss_Mean', score_loss_mean, step)
+          tb_writer.add_scalar('Training/Flow_Loss_Mean', flow_loss_mean, step)
+          tb_writer.add_scalar('Training/Logp_Mean', logp_mean, step)
+          tb_writer.add_scalar('Training/Loss_Std', loss_std, step)
+          tb_writer.add_scalar('Training/Score_Loss_Std', score_loss_std, step)
+          tb_writer.add_scalar('Training/Flow_Loss_Std', flow_loss_std, step)
+          tb_writer.add_scalar('Training/Logp_Std', logp_std, step)
 
     # Save a temporary checkpoint to resume training after pre-emption periodically
     if step != 0 and step != initial_step and step % config.training.snapshot_freq_for_preemption == 0:
       utils.save_checkpoint(config, checkpoint_meta_dir, state)
       if config.flow.model != 'identity':
         utils.save_checkpoint(config, flow_checkpoint_meta_dir, flow_state)
+
+      # Also save a permanent checkpoint at preemption intervals for more frequent saves
+      save_step = step // config.training.snapshot_freq_for_preemption
+      utils.save_checkpoint(config, os.path.join(checkpoint_dir, f'checkpoint_preempt_{save_step}.pth'), state)
+      if config.flow.model != 'identity':
+        utils.save_checkpoint(config, os.path.join(checkpoint_dir, f'flow_checkpoint_preempt_{save_step}.pth'), flow_state)
+      logging.info(f"Saved checkpoint at step {step} (preemption interval)")
 
     # Save a checkpoint periodically and generate samples if needed
     if step != 0 and step != initial_step and step % config.training.snapshot_freq == 0 or step == config.training.n_iters:
@@ -140,6 +185,11 @@ def train(config, workdir, assetdir):
         ema.restore(score_model.parameters())
         if config.flow.model != 'identity':
           flow_model.train()
+
+  # Close tensorboard writer at the end of training
+  if tb_writer is not None:
+    tb_writer.close()
+    logging.info("Closed tensorboard writer")
 
 def evaluate(config,
              workdir,
@@ -198,7 +248,9 @@ def evaluate(config,
       for batch_id in range((config.training.num_train_data - 1) // config.training.batch_size + 1):
         train_batch, _ = datasets.get_batch(config, train_iter, train_ds)
         with torch.no_grad():
-          train_batch = (255. * train_batch + torch.rand_like(train_batch)) / 256.
+          # Apply dequantization only for image data, not continuous protein data
+          if config.data.dataset != 'PROTEIN_CONTACT_MAP':
+            train_batch = (255. * train_batch + torch.rand_like(train_batch)) / 256.
           train_batch = scaler(train_batch)
           transformed_train_batch, _ = flow_forward(config, flow_model, train_batch, log_det=None, reverse=False)
           if config.training.sde != 'vesde':

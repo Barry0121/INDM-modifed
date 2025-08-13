@@ -382,10 +382,14 @@ class ProteinTransforms:
         return transform
 
 def get_data_scaler(config):
-  """Data normalizer. Assume data are always in [0, 1]."""
+  """Data normalizer. Assume data are always in [0, 1] except for protein data."""
   if config.data.centered:
-    # Rescale to [-1, 1]
-    return lambda x: x * 2. - 1.
+    if config.data.dataset == 'PROTEIN_CONTACT_MAP':
+      # For protein data, already in [-1, 1] range (no scaling)
+      return lambda x: x
+    else:
+      # For image data in [0, 1], rescale to [-1, 1]
+      return lambda x: x * 2. - 1.
   else:
     return lambda x: x
 
@@ -393,8 +397,12 @@ def get_data_scaler(config):
 def get_data_inverse_scaler(config):
   """Inverse data normalizer."""
   if config.data.centered:
-    # Rescale [-1, 1] to [0, 1]
-    return lambda x: (x + 1.) / 2.
+    if config.data.dataset == 'PROTEIN_CONTACT_MAP':
+      # For protein data, keep in [-1, 1] range (no scaling)
+      return lambda x: x
+    else:
+      # For image data, rescale [-1, 1] to [0, 1]
+      return lambda x: (x + 1.) / 2.
   else:
     return lambda x: x
 
@@ -519,10 +527,10 @@ def get_dataset_from_torch(config):
     print(f"Dataset will be loaded from: data/pdb/distance_matrices.npz")
 
     # Create train dataset using PDB class
-    train_data = PDB(train=True)
+    train_data = PDB(train=True, config=config)
 
     # Create eval dataset using PDB class
-    eval_data = PDB(train=False)
+    eval_data = PDB(train=False, config=config)
 
     print(f"Training samples: {len(train_data)}, Evaluation samples: {len(eval_data)}")
 

@@ -253,7 +253,7 @@ def get_step_fn(config, sde, train, optimize_fn=None, scaler=None):
     state['step'] += 1
     state['ema'].update(model.parameters())
 
-    return losses_, None, None, None, None
+    return losses_, None, None, None
 
   def flow_step_fn_nll(state, flow_state, batch):
     """Running one step of training or evaluation.

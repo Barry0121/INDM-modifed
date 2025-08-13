@@ -14,8 +14,9 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Training NCSNv3 on Protein Contact Maps with continuous sigmas for NLL evaluation."""
+"""Training NCSN++ on Protein Contact Maps with VE SDE - No Flow Model."""
 
+import torch
 from configs.default_celeba_configs import get_default_configs
 
 
@@ -24,15 +25,15 @@ def get_config():
 
   # training
   training = config.training
-  training.sde = 'vpsde'
+  training.sde = 'vesde'
   training.continuous = True
   training.reduce_mean = True
-  training.likelihood_weighting = False
-  training.importance_sampling = False
-  training.batch_size = 16  # Updated from indm_fid.py
+  training.likelihood_weighting = True
+  training.importance_sampling = True
+  training.batch_size = 128  # Very small due to 32x32 matrices
   training.n_iters = 20005  # Reduced for fast testing - successful runs show good FID within 20k steps
-  training.snapshot_freq = 1000  # Updated from indm_fid.py
-  training.log_freq = 50
+  training.snapshot_freq = 10000
+  training.log_freq = 500
   training.eval_freq = 10000
 
   # sampling
@@ -45,12 +46,12 @@ def get_config():
   sampling.probability_flow = False
   sampling.snr = 0.16
 
-  # data - Modified for protein contact maps
+  # data - Modified for protein distance maps
   data = config.data
   data.dataset = 'PROTEIN_CONTACT_MAP'  # Custom dataset name
-  data.image_size = 64  # Our actual matrix size (32x32 - first 32 residues)
+  data.image_size = 32  # Our actual matrix size (32x32 - first 32 residues)
   data.num_channels = 1  # Distance maps are single channel
-  data.centered = True  # Center the data around 0 (we normalize to [-1,1])
+  data.centered = False  # VE SDE works better with [0,1] normalization
   data.uniform_dequantization = False  # Not needed for continuous distance maps
   data.num_epochs = None  # Infinite epochs
   data.cache = False  # Data is pre-loaded in memory
@@ -69,33 +70,35 @@ def get_config():
 
   # Evaluation data statistics (will be updated automatically)
   eval_config = config.eval
-  eval_config.batch_size = 4  # Smaller batch size for 512x512 matrices
-  eval_config.num_samples = 100  # Number of samples to generate for evaluation
+  eval_config.batch_size = 50  # Batch size for evaluation
+  eval_config.num_samples = 1000  # Number of samples to generate for evaluation
   eval_config.num_test_data = 200  # Placeholder - updated by dataset
+  eval_config.enable_bpd = True  # Disable likelihood (NLL/NELBO) calculation
+  eval_config.enable_loss = False  # Disable loss evaluation
+  eval_config.num_nelbo = 1  # Disable NELBO evaluations
 
-  # model
+  # model - Adjusted for protein data with VE-specific settings
   model = config.model
   model.name = 'ncsnpp'
-  model.scale_by_sigma = False
-  model.ema_rate = 0.9999
+  model.scale_by_sigma = True  # Important for VE SDE
+  model.ema_rate = 0.999
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
-  model.nf = 128
-  model.ch_mult = (1, 2, 2, 2, 4)  # Channel multipliers for each resolution
+  model.nf = 128  # Base number of filters
+  model.ch_mult = (1, 2, 2, 2)  # Channel multipliers for each resolution
   model.num_res_blocks = 4
-  model.attn_resolutions = (16, 8)  # Add attention at multiple resolutions
+  model.attn_resolutions = (16,)  # Add attention at 16x16 resolution
   model.resamp_with_conv = True
   model.conditional = True
-  model.fir = False
+  model.fir = True
   model.fir_kernel = [1, 3, 3, 1]
   model.skip_rescale = True
   model.resblock_type = 'biggan'
   model.progressive = 'none'
-  model.progressive_input = 'none'
+  model.progressive_input = 'residual'
   model.progressive_combine = 'sum'
   model.attention_type = 'ddpm'
   model.init_scale = 0.
-  model.embedding_type = 'positional'
   model.fourier_scale = 16
   model.conv_size = 3
   model.dropout = 0.1  # Add dropout for regularization
@@ -116,16 +119,9 @@ def get_config():
   optim.warmup = 5000
   optim.grad_clip = 1.0
 
-  # SDE settings
-  sde = config.sde if hasattr(config, 'sde') else type('SDE', (), {})()
-  sde.beta_min = 0.1
-  sde.beta_max = 20.0
-  sde.num_scales = 1000
-  config.sde = sde
-
-  # flow - Adapted for protein contact maps NLL evaluation
+  # flow - Identity flow model (no flow)
   flow = config.flow
-  flow.model = 'wolf'
+  flow.model = 'identity'
   flow.lr = 1e-3
   flow.ema_rate = 0.999
   flow.optim_reset = False
@@ -133,13 +129,12 @@ def get_config():
   flow.intermediate_dim = 512
   flow.resblock_type = 'resflow'
   flow.squeeze = False  # Disable squeeze to keep 1-channel input
-  flow.model_config = 'flow_models/wolf/wolf_configs/protein/32x32/glow/resflow-gaussian-uni.json'
   flow.rank = 1
   flow.local_rank = 0
-  flow.batch_size = 16  # Reduced for protein maps (updated from indm_fid.py)
+  flow.batch_size = 16  # Reduced for protein maps
   flow.eval_batch_size = 4
   flow.batch_steps = 1
-  flow.init_batch_size = 32  # Reduced (updated from indm_fid.py)
+  flow.init_batch_size = 32  # Reduced
   flow.epochs = 500
   flow.valid_epochs = 1
   flow.seed = 65537
@@ -153,32 +148,14 @@ def get_config():
   flow.weight_decay = 0
   flow.amsgrad = True
   flow.grad_clip = 0
-  flow.dataset = 'protein_contact_map'  # Changed from 'celeba'
+  flow.dataset = 'protein_contact_map'
   flow.category = None
-  flow.image_size = 32  # Match data.image_size since squeeze is disabled (updated from indm_fid.py)
+  flow.image_size = 32  # Match data.image_size since squeeze is disabled
   flow.workers = 4
   flow.n_bits = 8
   flow.recover = -1
 
-  # NLL-specific evaluation parameters for proteins
-  config.nll_eval = type('NLLEval', (), {})()
-  config.nll_eval.likelihood_weighting = True  # Important for accurate NLL
-  config.nll_eval.importance_sampling = True   # Helps with NLL estimation
-  config.nll_eval.rtol = 1e-5  # Relative tolerance for ODE solver
-  config.nll_eval.atol = 1e-5  # Absolute tolerance for ODE solver
-  config.nll_eval.method = 'RK45'  # ODE solver method for likelihood computation
-  config.nll_eval.eps = 1e-5  # Small epsilon for numerical stability
-
-  # Protein-specific NLL evaluation
-  config.nll_eval.compute_bpd = True  # Bits per dimension
-  config.nll_eval.compute_elbo = True  # Evidence lower bound
-  config.nll_eval.protein_nll_metrics = True  # Enable protein-specific NLL metrics
-  config.nll_eval.contact_conditional_nll = True  # Conditional NLL for contacts
-  config.nll_eval.distance_conditional_nll = True  # Conditional NLL for distances
-  config.nll_eval.symmetry_regularization = 0.1  # Weight for symmetry in likelihood
-
   # Device configuration
-  import torch
   config.device = torch.device('cuda') if config.training.batch_size > 1 else torch.device('cpu')
 
   # Protein-specific evaluation metrics
@@ -190,20 +167,20 @@ def get_config():
   config.protein_eval.precision_thresholds = ['L/10', 'L/5', 'L/2', 'L']  # Top L/x contacts
 
   # Checkpointing
-  config.checkpoint_dir = './checkpoints/protein_contact_maps/'
+  config.checkpoint_dir = './checkpoints/protein_contact_maps_ve_noflow/'
   config.checkpoint_freq = 10000
   config.keep_checkpoint_max = 5
 
   # Logging
-  config.log_dir = './logs/protein_contact_maps/'
-  config.wandb_project = 'protein-diffusion'  # For Weights & Biases logging
+  config.log_dir = './logs/protein_contact_maps_ve_noflow/'
+  config.wandb_project = 'protein-diffusion-ve-noflow'  # For Weights & Biases logging
   config.wandb_entity = None  # Your W&B username/team
 
   return config
 
 
-def get_protein_nll_small_config():
-  """Smaller config for NLL evaluation with limited computational resources."""
+def get_protein_small_config():
+  """Smaller config for testing or limited computational resources."""
   config = get_config()
 
   # Reduce model size
@@ -216,26 +193,22 @@ def get_protein_nll_small_config():
   config.data.image_size = 128
   config.data.max_sequence_length = 128
 
-  # Reduce batch sizes for NLL computation
+  # Reduce batch sizes
   config.training.batch_size = 8
   config.eval.batch_size = 4
   config.flow.batch_size = 8
-  config.flow.eval_batch_size = 2
-  config.flow.init_batch_size = 16
-  config.flow.image_size = 128
 
-  # Adjust NLL evaluation parameters for smaller model
-  config.nll_eval.rtol = 1e-4
-  config.nll_eval.atol = 1e-4
+  # Reduce training iterations
+  config.training.n_iters = 500000
 
   return config
 
 
-def get_protein_nll_large_config():
-  """Larger config for high-precision NLL evaluation on large protein maps."""
+def get_protein_large_config():
+  """Larger config for high-resolution protein maps."""
   config = get_config()
 
-  # Increase model capacity for better likelihood estimation
+  # Increase model capacity
   config.model.nf = 256
   config.model.ch_mult = (1, 2, 2, 4, 4)
   config.model.num_res_blocks = 6
@@ -245,41 +218,12 @@ def get_protein_nll_large_config():
   config.data.image_size = 512
   config.data.max_sequence_length = 512
 
-  # Adjust batch sizes (may need further reduction based on GPU memory)
+  # Adjust batch sizes (may need to reduce based on GPU memory)
   config.training.batch_size = 4
   config.eval.batch_size = 2
   config.flow.batch_size = 4
-  config.flow.eval_batch_size = 1
-  config.flow.init_batch_size = 8
-  config.flow.image_size = 512
 
-  # Higher precision for NLL evaluation on large models
-  config.nll_eval.rtol = 1e-6
-  config.nll_eval.atol = 1e-6
-  config.nll_eval.method = 'DOP853'  # Higher-order method for better precision
-
-  return config
-
-
-def get_protein_nll_fast_config():
-  """Fast config for approximate NLL evaluation during training."""
-  config = get_config()
-
-  # Use faster but less precise settings
-  config.nll_eval.rtol = 1e-3
-  config.nll_eval.atol = 1e-3
-  config.nll_eval.method = 'RK23'  # Faster lower-order method
-  config.nll_eval.likelihood_weighting = False  # Disable for speed
-  config.nll_eval.importance_sampling = False   # Disable for speed
-
-  # Smaller batch sizes for faster evaluation
-  config.training.batch_size = 8
-  config.eval.batch_size = 4
-  config.flow.batch_size = 16
-  config.flow.eval_batch_size = 4
-
-  # Reduce some protein-specific computations
-  config.nll_eval.contact_conditional_nll = False
-  config.nll_eval.distance_conditional_nll = False
+  # Increase training iterations
+  config.training.n_iters = 2000000
 
   return config

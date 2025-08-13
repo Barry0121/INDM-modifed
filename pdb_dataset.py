@@ -44,14 +44,16 @@ class PDB(TVData):
     Args:
         train: Whether to use training split (True) or validation split (False)
         cache_dir: Directory for caching (unused, for compatibility)
+        config: Configuration object to determine data normalization range
         **kwargs: Additional arguments (unused, for compatibility)
     """
-    def __init__(self, *args, cache_dir='cache_datasets', **kwargs):
+    def __init__(self, *args, cache_dir='cache_datasets', config=None, **kwargs):
         # Dataset configuration
         self.file_path = 'data/pdb/distance_matrices.npz'
         self.train_ratio = 0.8
         self.seed = 42
         self.train = kwargs.get('train', True)
+        self.config = config
         
         # Load dataset
         print(f"Loading PDB dataset from {self.file_path}...")
@@ -76,24 +78,44 @@ class PDB(TVData):
         self.train_matrices = self.distance_matrices[train_indices]
         self.eval_matrices = self.distance_matrices[eval_indices]
         
-        # Normalize matrices to [-1, 1] range
+        # Normalize matrices based on config settings
         self.train_matrices = self.normalize_tensor(self.train_matrices)
         self.eval_matrices = self.normalize_tensor(self.eval_matrices)
         
         print(f"Train samples: {len(self.train_matrices)}")
         print(f"Eval samples: {len(self.eval_matrices)}")
-        print(f"Normalization range: [{np.min(self.train_matrices):.3f}, {np.max(self.train_matrices):.3f}]")
+        
+        # Determine target range based on config
+        if self.config and hasattr(self.config.data, 'centered') and not self.config.data.centered:
+            target_range = "[0, 1]"
+        else:
+            target_range = "[-1, 1]"
+        print(f"Normalization range: [{np.min(self.train_matrices):.3f}, {np.max(self.train_matrices):.3f}] (target: {target_range})")
         
         # Set classes for compatibility
         self.classes = [0]  # Single class for unsupervised learning
     
     def normalize_tensor(self, tensor):
-        """Normalize tensor to [-1, 1] range using global min/max."""
-        return (tensor - self.global_min) / (self.global_max - self.global_min) * 2 - 1
+        """Normalize tensor based on config settings."""
+        # First normalize to [0, 1] using global min/max
+        normalized_01 = (tensor - self.global_min) / (self.global_max - self.global_min)
+        
+        # Then scale based on config.data.centered setting
+        if self.config and hasattr(self.config.data, 'centered') and not self.config.data.centered:
+            # VE models: use [0, 1] range
+            return normalized_01
+        else:
+            # VP/SubVP models: use [-1, 1] range  
+            return normalized_01 * 2 - 1
 
     def denormalize_tensor(self, normalized_tensor):
         """Denormalize tensor back to original distance range."""
-        return (normalized_tensor + 1) / 2 * (self.global_max - self.global_min) + self.global_min
+        if self.config and hasattr(self.config.data, 'centered') and not self.config.data.centered:
+            # VE models: from [0, 1] to original range
+            return normalized_tensor * (self.global_max - self.global_min) + self.global_min
+        else:
+            # VP/SubVP models: from [-1, 1] to original range
+            return (normalized_tensor + 1) / 2 * (self.global_max - self.global_min) + self.global_min
 
     def get_matrices(self):
         """Get the matrices for current split (train or eval)."""

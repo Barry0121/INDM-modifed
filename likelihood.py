@@ -230,7 +230,7 @@ def get_elbo_fn(config, sde, inverse_scaler=None, hutchinson_type='Rademacher'):
     residual_nll = residual_fn(batch)
     #print("residual bpd: ", torch.mean(residual_nll) / np.prod(list(batch.shape[1:])) / np.log(2))
     elbos_residual = elbos - residual_nll
-    assert elbos.shape == residual_nll.shape == lp.shape == Mu.shape == Nu.shape == log_jacob.shape == torch.Size(
+    assert elbos.shape == residual_nll.shape == lp.shape == Mus.shape == Nus.shape == log_jacob.shape == torch.Size(
       [batch.shape[0]])
     return - (elbos + logdet) / np.prod(list(batch.shape[1:])) / np.log(2) + 7. - inverse_scaler(-1.),\
            - (elbos_residual + logdet) / np.prod(list(batch.shape[1:])) / np.log(2) + 7. - inverse_scaler(-1.)
