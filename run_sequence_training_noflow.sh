@@ -18,28 +18,28 @@ echo "=== Starting all configurations in parallel ==="
 
 # ODE Solver Configurations (GPUs 0-2)
 echo "Starting VP no-flow with ODE solver on GPU 0 (BPD enabled)..."
-CUDA_VISIBLE_DEVICES=0 python main.py --mode train --config configs/vp/PROTEIN/indm_noflow_ode.py --workdir outputs/protein_vp_noflow_ode/ > logs/vp_noflow_ode_log.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=0 python main.py --mode train --config configs/vp/PROTEIN/indm_noflow_ode.py --workdir outputs/protein_vp_noflow_ode/ > logs/vp_noflow_ode_log.txt 2> logs/vp_noflow_ode_err.txt &
 PID_VP_ODE=$!
 
 echo "Starting VE no-flow with ODE solver on GPU 1 (BPD enabled)..."
-CUDA_VISIBLE_DEVICES=1 python main.py --mode train --config configs/ve/PROTEIN/indm_noflow_ode.py --workdir outputs/protein_ve_noflow_ode/ > logs/ve_noflow_ode_log.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python main.py --mode train --config configs/ve/PROTEIN/indm_noflow_ode.py --workdir outputs/protein_ve_noflow_ode/ > logs/ve_noflow_ode_log.txt 2> logs/ve_noflow_ode_err.txt &
 PID_VE_ODE=$!
 
 echo "Starting subVP no-flow with ODE solver on GPU 2 (BPD enabled)..."
-CUDA_VISIBLE_DEVICES=2 python main.py --mode train --config configs/subvp/PROTEIN/indm_noflow_ode.py --workdir outputs/protein_subvp_noflow_ode/ > logs/subvp_noflow_ode_log.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=2 python main.py --mode train --config configs/subvp/PROTEIN/indm_noflow_ode.py --workdir outputs/protein_subvp_noflow_ode/ > logs/subvp_noflow_ode_log.txt 2> logs/subvp_noflow_ode_err.txt &
 PID_SUBVP_ODE=$!
 
 # PC Solver Configurations (GPUs 3-5)
 echo "Starting VP no-flow with PC solver on GPU 3..."
-CUDA_VISIBLE_DEVICES=3 python main.py --mode train --config configs/vp/PROTEIN/indm_noflow_pc.py --workdir outputs/protein_vp_noflow_pc/ > logs/vp_noflow_pc_log.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python main.py --mode train --config configs/vp/PROTEIN/indm_noflow_pc.py --workdir outputs/protein_vp_noflow_pc/ > logs/vp_noflow_pc_log.txt 2> logs/vp_noflow_pc_err.txt &
 PID_VP_PC=$!
 
 echo "Starting VE no-flow with PC solver on GPU 4..."
-CUDA_VISIBLE_DEVICES=4 python main.py --mode train --config configs/ve/PROTEIN/indm_noflow_pc.py --workdir outputs/protein_ve_noflow_pc/ > logs/ve_noflow_pc_log.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=4 python main.py --mode train --config configs/ve/PROTEIN/indm_noflow_pc.py --workdir outputs/protein_ve_noflow_pc/ > logs/ve_noflow_pc_log.txt 2> logs/ve_noflow_pc_err.txt &
 PID_VE_PC=$!
 
 echo "Starting subVP no-flow with PC solver on GPU 5..."
-CUDA_VISIBLE_DEVICES=5 python main.py --mode train --config configs/subvp/PROTEIN/indm_noflow_pc.py --workdir outputs/protein_subvp_noflow_pc/ > logs/subvp_noflow_pc_log.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=5 python main.py --mode train --config configs/subvp/PROTEIN/indm_noflow_pc.py --workdir outputs/protein_subvp_noflow_pc/ > logs/subvp_noflow_pc_log.txt 2> logs/subvp_noflow_pc_err.txt &
 PID_SUBVP_PC=$!
 
 echo ""
@@ -55,22 +55,22 @@ echo "Waiting for all jobs to complete..."
 
 # Wait for all background jobs to complete
 wait $PID_VP_ODE
-echo "VP ODE training completed. Log saved to logs/vp_noflow_ode_log.txt"
+echo "VP ODE training completed. Log: logs/vp_noflow_ode_log.txt, Errors: logs/vp_noflow_ode_err.txt"
 
 wait $PID_VE_ODE
-echo "VE ODE training completed. Log saved to logs/ve_noflow_ode_log.txt"
+echo "VE ODE training completed. Log: logs/ve_noflow_ode_log.txt, Errors: logs/ve_noflow_ode_err.txt"
 
 wait $PID_SUBVP_ODE
-echo "SubVP ODE training completed. Log saved to logs/subvp_noflow_ode_log.txt"
+echo "SubVP ODE training completed. Log: logs/subvp_noflow_ode_log.txt, Errors: logs/subvp_noflow_ode_err.txt"
 
 wait $PID_VP_PC
-echo "VP PC training completed. Log saved to logs/vp_noflow_pc_log.txt"
+echo "VP PC training completed. Log: logs/vp_noflow_pc_log.txt, Errors: logs/vp_noflow_pc_err.txt"
 
 wait $PID_VE_PC
-echo "VE PC training completed. Log saved to logs/ve_noflow_pc_log.txt"
+echo "VE PC training completed. Log: logs/ve_noflow_pc_log.txt, Errors: logs/ve_noflow_pc_err.txt"
 
 wait $PID_SUBVP_PC
-echo "SubVP PC training completed. Log saved to logs/subvp_noflow_pc_log.txt"
+echo "SubVP PC training completed. Log: logs/subvp_noflow_pc_log.txt, Errors: logs/subvp_noflow_pc_err.txt"
 
 echo ""
 echo "=== All no-flow training configurations completed ==="
@@ -84,5 +84,7 @@ echo "4. VP + PC: outputs/protein_vp_noflow_pc/ (GPU 3)"
 echo "5. VE + PC: outputs/protein_ve_noflow_pc/ (GPU 4)"
 echo "6. SubVP + PC: outputs/protein_subvp_noflow_pc/ (GPU 5)"
 echo ""
-echo "All training logs are saved in the logs/ directory."
+echo "All training logs and error files are saved in the logs/ directory:"
+echo "  - Standard output: *_log.txt files"
+echo "  - Error output: *_err.txt files"
 echo "GPUs 6-7 remain available for other tasks."

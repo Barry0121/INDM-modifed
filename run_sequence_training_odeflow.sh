@@ -7,7 +7,7 @@
 echo "Starting ODE flow training sequence..."
 
 echo "Training VP with ODE sampling..."
-python main.py --mode train --config configs/vp/PROTEIN/indm_fid_ode.py --workdir outputs/protein_vp_ode_flow_run/ > vp_ode_flow_log.txt
+CUDA_VISIBLE_DEVICES=6 python main.py --mode train --config configs/vp/PROTEIN/indm_fid_ode.py --workdir outputs/protein_vp_ode_flow_run/ > vp_ode_flow_log.txt
 
 # echo "Training SubVP with ODE sampling..."
 # python main.py --mode train --config configs/subvp/PROTEIN/indm_ode.py --workdir outputs/protein_subvp_ode_flow_run/ > subvp_ode_flow_log.txt
