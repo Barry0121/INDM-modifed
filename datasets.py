@@ -202,8 +202,10 @@ def get_dataset_from_tf(config, evaluation=False):
       return tf.image.resize(img, [config.data.image_size, config.data.image_size], antialias=True)
 
   elif config.data.dataset == 'CELEBA':
-    dataset_builder = tfds.builder('celeb_a', data_dir=os.path.dirname(
-      os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))) + f'/data/')
+    # Fallback to TFDS with manual download
+    local_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tfds_data')
+    dataset_builder = tfds.builder('celeb_a', data_dir=local_data_dir)
+
     train_split_name = 'train'
     # eval_split_name = 'validation'
     eval_split_name = 'test'
@@ -212,6 +214,31 @@ def get_dataset_from_tf(config, evaluation=False):
       img = tf.image.convert_image_dtype(img, tf.float32)
       img = central_crop(img, 140)
       img = resize_small(img, config.data.image_size)
+      return img
+
+  elif config.data.dataset == "PROTEIN":
+    # See protein_dataset/protein_tfds.py for path specification and PROTEIN dataset configurations
+    import sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'protein_dataset'))
+    from protein_tfds import ProteinDistanceMatrices
+
+    local_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tfds_data')
+    dataset_builder = ProteinDistanceMatrices(data_dir=local_data_dir) # Inherent from tfds.builder object
+
+    train_split_name = 'train'
+    eval_split_name = 'test'
+
+    def resize_op(img):
+      img = tf.image.convert_image_dtype(img, tf.float32)
+      if config.data.image_size != 32:
+        img = tf.image.resize(
+                      img,
+                      [
+                        config.data.image_size,
+                        config.data.image_size
+                      ],
+                      antialias=True
+              )
       return img
 
   elif config.data.dataset == 'LSUN':
