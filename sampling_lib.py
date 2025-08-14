@@ -21,7 +21,7 @@ import io
 import torch
 import numpy as np
 import gc
-import evaluation
+import INDM.evaluation_original as evaluation_original
 import utils
 import tensorflow as tf
 from torchvision.utils import make_grid, save_image
@@ -190,7 +190,7 @@ def get_latents(config, samples, inception_model, inceptionv3, step, r, sample_d
         for k in range(num):
             # Force garbage collection before calling TensorFlow code for Inception network
             gc.collect()
-            latents_temp = evaluation.run_inception_distributed(samples[small_batch * k:small_batch * (k + 1)],
+            latents_temp = evaluation_original.run_inception_distributed(samples[small_batch * k:small_batch * (k + 1)],
                                                                 inception_model,
                                                                 inceptionv3=inceptionv3)
             if k == 0:

@@ -108,12 +108,12 @@ Compute the inception features for a list of files
 """
 def get_files_features(fdir, l_files, model=None, num_workers=12,
                        batch_size=128, device=torch.device("cuda"),
-                       mode="clean", custom_fn_resize=None, 
+                       mode="clean", custom_fn_resize=None,
                        description="", sampling_itr=''):
     # define the model if it is not specified
     if model is None:
         model = build_feature_extractor(mode, device)
-    
+
     # build resizing function based on options
     if custom_fn_resize is not None:
         fn_resize = custom_fn_resize
@@ -222,7 +222,7 @@ def fid_from_feats(feats1, feats2):
     return frechet_distance(mu1, sig1, mu2, sig2)
 
 """
-Computes the FID score for a folder of images for a specific dataset 
+Computes the FID score for a folder of images for a specific dataset
 and a specific resolution
 """
 def fid_folder(fdir, dataset, dataset_name, dataset_res, dataset_split,
@@ -276,7 +276,7 @@ def fid_folder(fdir, dataset, dataset_name, dataset_res, dataset_split,
     return fid
 
 def get_statistics(config, assetdir, mode):
-    from evaluation import load_dataset_stats
+    from INDM.evaluation_original import load_dataset_stats
     stats = load_dataset_stats(config, assetdir)
     print("read statistics from asset")
     if 'mu' in list(stats.keys()):
@@ -382,7 +382,7 @@ def get_statistics_from_dataset(fdir, config, dataset, mode, device, dequantizat
 """
 Compute the FID stats from a generator model
 """
-def get_model_features(G, model, mode="clean", z_dim=512, 
+def get_model_features(G, model, mode="clean", z_dim=512,
         num_gen=50_000, batch_size=128,
         device=torch.device("cuda"), desc="FID model: "):
     fn_resize = build_resizer(mode)
@@ -411,7 +411,7 @@ def get_model_features(G, model, mode="clean", z_dim=512,
 
 
 """
-Computes the FID score for a generator model for a specific dataset 
+Computes the FID score for a generator model for a specific dataset
 and a specific resolution
 """
 def fid_model(G, dataset_name, dataset_res, dataset_split,
@@ -446,7 +446,7 @@ def compare_folders(fdir1, fdir2, feat_model, mode, num_workers=0,
     # get all inception features for the first folder
     fbname1 = os.path.basename(fdir1)
     np_feats1 = get_folder_features(fdir1, feat_model, num_workers=num_workers,
-                                    batch_size=batch_size, device=device, mode=mode, 
+                                    batch_size=batch_size, device=device, mode=mode,
                                     description=f"FID {fbname1} : ")
     mu1 = np.mean(np_feats1, axis=0)
     sigma1 = np.cov(np_feats1, rowvar=False)
@@ -485,7 +485,7 @@ def remove_custom_stats(name, mode="clean"):
 """
 Cache a custom dataset statistics file
 """
-def make_custom_stats(name, fdir, num=None, mode="clean", 
+def make_custom_stats(name, fdir, num=None, mode="clean",
                     num_workers=0, batch_size=64, device=torch.device("cuda")):
     stats_folder = os.path.join(os.path.dirname(cleanfid.__file__), "stats")
     split, res = "custom", "na"
@@ -509,25 +509,25 @@ def make_custom_stats(name, fdir, num=None, mode="clean",
     np.savez_compressed(outf, mu=mu, sigma=sigma)
 
 
-def compute_kid(fdir1=None, fdir2=None, gen=None, 
+def compute_kid(fdir1=None, fdir2=None, gen=None,
             mode="clean", num_workers=12, batch_size=32,
             device=torch.device("cuda"), dataset_name="FFHQ",
             dataset_res=1024, dataset_split="train", num_gen=50_000, z_dim=512):
     # build the feature extractor based on the mode
     feat_model = build_feature_extractor(mode, device)
-    
+
     # if both dirs are specified, compute FID between folders
     if fdir1 is not None and fdir2 is not None:
         print("compute KID between two folders")
         # get all inception features for the first folder
         fbname1 = os.path.basename(fdir1)
         np_feats1 = get_folder_features(fdir1, None, num_workers=num_workers,
-                            batch_size=batch_size, device=device, mode=mode, 
+                            batch_size=batch_size, device=device, mode=mode,
                             description=f"KID {fbname1} : ")
         # get all inception features for the second folder
         fbname2 = os.path.basename(fdir2)
         np_feats2 = get_folder_features(fdir2, None, num_workers=num_workers,
-                            batch_size=batch_size, device=device, mode=mode, 
+                            batch_size=batch_size, device=device, mode=mode,
                             description=f"KID {fbname2} : ")
         score = kernel_distance(np_feats1, np_feats2)
         return score
@@ -562,7 +562,7 @@ def compute_kid(fdir1=None, fdir2=None, gen=None,
             batch_size=batch_size, device=device)
         score = kernel_distance(ref_feats, np_feats)
         return score
-    
+
     else:
         raise ValueError(f"invalid combination of directories and models entered")
 
@@ -612,6 +612,6 @@ def compute_fid(config=None, fdir1=None, fdir2=None, gen=None, dataset=None, sig
                 mode=mode, num_workers=num_workers, batch_size=batch_size,
                 device=device)
         return score
-    
+
     else:
         raise ValueError(f"invalid combination of directories and models entered")

@@ -384,6 +384,8 @@ def get_pc_sampler(config, sde, shape, predictor, corrector, inverse_scaler, snr
   Returns:
     A sampling function that returns samples and the number of function evaluations during sampling.
   """
+  SCALING_FACTOR = 1. if config.data.dataset == 'PROTEIN' else 255.
+
   # Create predictor & corrector update functions
   predictor_update_fn = functools.partial(shared_predictor_update_fn,
                                           config=config,
@@ -434,10 +436,7 @@ def get_pc_sampler(config, sde, shape, predictor, corrector, inverse_scaler, snr
         x, x_mean = corrector_update_fn(x, vec_t, model=model, snr=snr_temp)
         x, x_mean = predictor_update_fn(x, vec_t, None, model=model)
         if i == num_scales-2:
-          if config.data.dataset == 'PROTEIN':
-            samples = (inverse_scaler(x_mean).permute(0, 2, 3, 1).cpu().numpy() * 1.)
-          else:
-            samples = (inverse_scaler(x_mean).permute(0, 2, 3, 1).cpu().numpy() * 255.)
+          samples = (inverse_scaler(x_mean).permute(0, 2, 3, 1).cpu().numpy() * SCALING_FACTOR)
           samples = samples.reshape((-1, config.data.image_size, config.data.image_size, config.data.num_channels))
           assert samples.shape == (
           samples.shape[0], config.data.image_size, config.data.image_size, config.data.num_channels)
