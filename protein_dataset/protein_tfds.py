@@ -20,7 +20,6 @@ class ProteinDistanceMatrices(tfds.core.GeneratorBasedBuilder):
                 'image': tfds.features.Tensor(
                     shape=(32, 32, 1),
                     dtype=tf.float32,
-                    doc="32x32 protein distance matrix as single channel image"
                 ),
                 'label': tfds.features.ClassLabel(names=['protein']),
             }),
@@ -30,18 +29,37 @@ class ProteinDistanceMatrices(tfds.core.GeneratorBasedBuilder):
 
     def _split_generators(self, dl_manager):
         # Path to your NPZ file
-        npz_path = os.path.join(os.path.dirname(__file__), 'data', 'pdb', 'distance_matrices.npz')
+        npz_path = os.path.join('/'.join(os.path.dirname(__file__).split('/')[:-1]), 'data', 'pdb', 'distance_matrices.npz')
 
-        return {
-            'train': self._generate_examples(npz_path, split='train'),
-            'test': self._generate_examples(npz_path, split='test'),
-            'validation': self._generate_examples(npz_path, split='validation'),
-        }
+        # Return proper SplitGenerator objects
+        return [
+            tfds.core.SplitGenerator(
+                name=tfds.Split.TRAIN,
+                gen_kwargs={
+                    'npz_path': npz_path,
+                    'split': 'train',
+                },
+            ),
+            tfds.core.SplitGenerator(
+                name=tfds.Split.TEST,
+                gen_kwargs={
+                    'npz_path': npz_path,
+                    'split': 'test',
+                },
+            ),
+            tfds.core.SplitGenerator(
+                name=tfds.Split.VALIDATION,
+                gen_kwargs={
+                    'npz_path': npz_path,
+                    'split': 'validation',
+                },
+            ),
+        ]
 
     def _generate_examples(self, npz_path, split):
         # Load the full NPZ file
         data = np.load(npz_path)
-        matrices = data['distance_matrices'] 
+        matrices = data['distance_matrices']
 
         # Split the data (adjust ratios as needed)
         total_samples = matrices.shape[0]  # 582,681

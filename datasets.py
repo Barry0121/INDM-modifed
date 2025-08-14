@@ -222,6 +222,7 @@ def get_dataset_from_tf(config, evaluation=False):
     sys.path.append(os.path.join(os.path.dirname(__file__), 'protein_dataset'))
     from protein_tfds import ProteinDistanceMatrices
 
+    # First time calling will take a while
     local_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tfds_data')
     dataset_builder = ProteinDistanceMatrices(data_dir=local_data_dir) # Inherent from tfds.builder object
 
@@ -229,16 +230,18 @@ def get_dataset_from_tf(config, evaluation=False):
     eval_split_name = 'test'
 
     def resize_op(img):
-      img = tf.image.convert_image_dtype(img, tf.float32)
+      img = tf.cast(img, tf.float32)
+      # KEY: replace resize_op which assume data range (0,255)
+      img = (img - tf.reduce_min(img)) / (tf.reduce_max(img) - tf.reduce_min(img))
       if config.data.image_size != 32:
         img = tf.image.resize(
-                      img,
-                      [
-                        config.data.image_size,
-                        config.data.image_size
-                      ],
-                      antialias=True
-              )
+                img,
+                [
+                  config.data.image_size,
+                  config.data.image_size
+                ],
+                antialias=True
+        )
       return img
 
   elif config.data.dataset == 'LSUN':
