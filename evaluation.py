@@ -29,6 +29,14 @@ from scipy import linalg
 
 from cleanfid import fid as fid_calculator
 
+# Import PRDC package for precision, recall, density, and coverage metrics
+try:
+    from prdc import compute_prdc
+    PRDC_AVAILABLE = True
+except ImportError:
+    logging.warning("PRDC package not available. Install with: pip install prdc")
+    PRDC_AVAILABLE = False
+
 # Import original functions that are still needed for non-protein datasets
 try:
     import evaluation_original
@@ -95,7 +103,7 @@ def compute_fid_and_is_(config, assetdir, inceptionv3, ckpt, dataset, name='/0',
     compute_fid_and_is_cifar10(config, assetdir, inceptionv3, ckpt, name=name, sample_dir=sample_dir, latents=latents,
                                num_data=num_data)
   elif config.data.dataset == 'PROTEIN':
-    compute_protein_fid(config, assetdir, ckpt, name=name, sample_dir=sample_dir, num_data=num_data)
+    compute_protein_fid_and_prdc(config, assetdir, ckpt, name=name, sample_dir=sample_dir, num_data=num_data)
   elif config.data.dataset in ['FFHQ', 'LSUN', 'CelebAHQ', 'CELEBA', 'STL10', 'IMAGENET64', 'CIFAR100']:
     compute_fid_(config, assetdir, inceptionv3, ckpt, dataset, name=name, sample_dir=sample_dir, latents=latents,
                  num_data=num_data)
@@ -453,8 +461,8 @@ def load_protein_samples(sample_dir, num_data=1000):
   return gen_samples
 
 
-def compute_protein_fid(config, assetdir, ckpt, name='/0', sample_dir='', num_data=1000):
-  """Compute FID for protein distance maps using direct comparison.
+def compute_protein_fid_and_prdc(config, assetdir, ckpt, name='/0', sample_dir='', num_data=1000, nearest_k=5):
+  """Compute FID and PRDC metrics for protein distance maps using direct comparison.
 
   Args:
     config: Configuration object
@@ -463,25 +471,76 @@ def compute_protein_fid(config, assetdir, ckpt, name='/0', sample_dir='', num_da
     name: Name identifier for results
     sample_dir: Directory containing generated samples
     num_data: Number of samples to use for evaluation
+    nearest_k: Number of nearest neighbors for PRDC calculation
   """
-  logging.info(f'Computing protein FID for {num_data} samples')
+  logging.info(f'Computing protein FID and PRDC for {num_data} samples')
 
-  # Load reference statistics
+  # Load reference statistics and samples (shared for both FID and PRDC)
   ref_mu, ref_sigma = get_protein_dataset_stats(config, num_data=num_data)
+  
+  # Load reference samples for PRDC calculation
+  logging.info('Loading reference protein samples for PRDC calculation')
+  train_ds, eval_ds = datasets.get_dataset(config)
+  ref_samples = []
+  data_iter = iter(train_ds)
+  samples_collected = 0
 
-  # Load generated samples
+  while samples_collected < num_data:
+    try:
+      batch, _ = datasets.get_batch(config, data_iter, train_ds)
+      batch_np = batch.cpu().numpy()
+      batch_flat = batch_np.reshape(batch_np.shape[0], -1)
+      ref_samples.append(batch_flat)
+      samples_collected += batch_np.shape[0]
+      if samples_collected >= num_data:
+        break
+    except StopIteration:
+      logging.warning(f'Only collected {samples_collected} reference samples (requested {num_data})')
+      break
+
+  ref_samples = np.concatenate(ref_samples, axis=0)[:num_data]
+
+  # Load generated samples (shared for both FID and PRDC)
   gen_samples = load_protein_samples(sample_dir, num_data=num_data)
 
-  # Compute statistics for generated samples
+  # Compute FID
   gen_mu = np.mean(gen_samples, axis=0)
   gen_sigma = np.cov(gen_samples, rowvar=False)
-
-  # Compute FID
   fid_score = protein_frechet_distance(gen_mu, gen_sigma, ref_mu, ref_sigma)
 
   logging.info(f'{sample_dir}_ckpt-{ckpt}_{name} --- Protein FID: {fid_score:.6f}')
 
-  # Save results (compatible with existing format)
+  # Compute PRDC metrics
+  prdc_metrics = {}
+  if PRDC_AVAILABLE:
+    try:
+      # Ensure same number of samples for both real and fake
+      min_samples = min(len(ref_samples), len(gen_samples))
+      ref_samples_prdc = ref_samples[:min_samples]
+      gen_samples_prdc = gen_samples[:min_samples]
+      
+      logging.info(f'Computing PRDC with {min_samples} samples each, k={nearest_k}')
+      prdc_result = compute_prdc(
+          real_features=ref_samples_prdc,
+          fake_features=gen_samples_prdc,
+          nearest_k=nearest_k
+      )
+      prdc_metrics = prdc_result
+      
+      logging.info(f'{sample_dir}_ckpt-{ckpt}_{name} --- Protein PRDC:')
+      logging.info(f'  Precision: {prdc_metrics["precision"]:.6f}')
+      logging.info(f'  Recall: {prdc_metrics["recall"]:.6f}')
+      logging.info(f'  Density: {prdc_metrics["density"]:.6f}')
+      logging.info(f'  Coverage: {prdc_metrics["coverage"]:.6f}')
+      
+    except Exception as e:
+      logging.error(f'PRDC computation failed: {e}')
+      prdc_metrics = {'precision': None, 'recall': None, 'density': None, 'coverage': None}
+  else:
+    logging.warning('PRDC package not available, skipping PRDC computation')
+    prdc_metrics = {'precision': None, 'recall': None, 'density': None, 'coverage': None}
+
+  # Save results (compatible with existing format, enhanced with PRDC)
   if len(name.split('.')) == 1:
     result_name = f'report_{name}.npz'
   else:
@@ -491,6 +550,11 @@ def compute_protein_fid(config, assetdir, ckpt, name='/0', sample_dir='', num_da
   if not os.path.exists(result_path):
     with tf.io.gfile.GFile(result_path, "wb") as f:
       io_buffer = io.BytesIO()
-      # Save FID score with same key as original for compatibility
-      np.savez_compressed(io_buffer, fids=fid_score)
+      # Save both FID and PRDC metrics
+      np.savez_compressed(io_buffer, 
+                         fids=fid_score,
+                         precision=prdc_metrics['precision'],
+                         recall=prdc_metrics['recall'],
+                         density=prdc_metrics['density'],
+                         coverage=prdc_metrics['coverage'])
       f.write(io_buffer.getvalue())
