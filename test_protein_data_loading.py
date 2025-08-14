@@ -7,19 +7,23 @@ functions in run_lib.py for testing with PROTEIN dataset configurations.
 
 import sys
 import os
-sys.path.append('/lambda/nfs/INDM/INDM')
-
 import torch
 import datasets
 import logging
+import importlib.util
+
+def load_config_from_file(config_path):
+    """Load configuration using importlib to avoid caching issues."""
+    spec = importlib.util.spec_from_file_location("config_module", config_path)
+    config_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(config_module)
+    return config_module.get_config()
 
 def test_protein_data_loading(config_path):
     """Test PROTEIN data loading with given configuration."""
-
-    # Import the config
-    sys.path.append(os.path.dirname(config_path))
-    config_module = os.path.basename(config_path).replace('.py', '')
-    config = __import__(config_module).get_config()
+    
+    # Load the configuration properly
+    config = load_config_from_file(config_path)
 
     print(f"Testing configuration: {config_path}")
     print(f"Dataset: {config.data.dataset}")
@@ -30,6 +34,7 @@ def test_protein_data_loading(config_path):
     print(f"Predictor: {config.sampling.predictor}")
     print(f"Corrector: {config.sampling.corrector}")
     print(f"Batch size: {config.training.batch_size}")
+    print(f"Centering: {config.data.centered}")
     print("-" * 50)
 
     try:
@@ -55,10 +60,10 @@ def test_protein_data_loading(config_path):
         print(f"Batch min/max: {batch.min().item():.4f} / {batch.max().item():.4f}")
 
         # Apply the same preprocessing as in train()
-        batch_preprocessed = (255. * batch + torch.rand_like(batch)) / 256.
-        batch_scaled = scaler(batch_preprocessed)
+        # batch_preprocessed = (255. * batch + torch.rand_like(batch)) / 256.
+        batch_scaled = scaler(batch)
 
-        print(f"Preprocessed batch min/max: {batch_preprocessed.min().item():.4f} / {batch_preprocessed.max().item():.4f}")
+        # print(f"Preprocessed batch min/max: {batch_preprocessed.min().item():.4f} / {batch_preprocessed.max().item():.4f}")
         print(f"Scaled batch min/max: {batch_scaled.min().item():.4f} / {batch_scaled.max().item():.4f}")
 
         # Test a few more batches

@@ -1,0 +1,188 @@
+============================================================
+PROTEIN Data Loading Test
+============================================================
+
+🧪 Testing vp/ode...
+Testing configuration: /lambda/nfs/INDM/INDM/configs/vp/PROTEIN/indm_fid_ode.py
+Dataset: PROTEIN
+Image size: 32
+Num channels: 1
+SDE type: vpsde
+Sampling method: ode
+Predictor: euler_maruyama
+Corrector: none
+Batch size: 128
+Centering: True
+--------------------------------------------------
+Loading dataset...
+Dataset loaded successfully!
+Train dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Eval dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Getting first batch...
+Batch shape: torch.Size([128, 1, 32, 32])
+Batch dtype: torch.float32
+Batch min/max: 0.0000 / 1.0000
+Scaled batch min/max: -1.0000 / 1.0000
+Testing 3 more batches...
+  Batch 2: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 3: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 4: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+✅ Data loading test PASSED!
+Result: ✅ PASSED
+
+
+🧪 Testing vp/pc...
+Testing configuration: /lambda/nfs/INDM/INDM/configs/vp/PROTEIN/indm_fid_pc.py
+Dataset: PROTEIN
+Image size: 32
+Num channels: 1
+SDE type: vpsde
+Sampling method: pc
+Predictor: reverse_diffusion
+Corrector: langevin
+Batch size: 128
+Centering: True
+--------------------------------------------------
+Loading dataset...
+Dataset loaded successfully!
+Train dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Eval dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Getting first batch...
+Batch shape: torch.Size([128, 1, 32, 32])
+Batch dtype: torch.float32
+Batch min/max: 0.0000 / 1.0000
+Scaled batch min/max: -1.0000 / 1.0000
+Testing 3 more batches...
+  Batch 2: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 3: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 4: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+✅ Data loading test PASSED!
+Result: ✅ PASSED
+
+
+🧪 Testing ve/ode...
+Testing configuration: /lambda/nfs/INDM/INDM/configs/ve/PROTEIN/indm_fid_ode.py
+Dataset: PROTEIN
+Image size: 32
+Num channels: 1
+SDE type: vesde
+Sampling method: ode
+Predictor: euler_maruyama
+Corrector: none
+Batch size: 128
+Centering: False
+--------------------------------------------------
+Loading dataset...
+Dataset loaded successfully!
+Train dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Eval dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Getting first batch...
+Batch shape: torch.Size([128, 1, 32, 32])
+Batch dtype: torch.float32
+Batch min/max: 0.0000 / 1.0000
+Scaled batch min/max: 0.0000 / 1.0000
+Testing 3 more batches...
+  Batch 2: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 3: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 4: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+✅ Data loading test PASSED!
+Result: ✅ PASSED
+
+
+🧪 Testing ve/pc...
+Testing configuration: /lambda/nfs/INDM/INDM/configs/ve/PROTEIN/indm_fid_pc.py
+Dataset: PROTEIN
+Image size: 32
+Num channels: 1
+SDE type: vesde
+Sampling method: pc
+Predictor: reverse_diffusion
+Corrector: langevin
+Batch size: 128
+Centering: False
+--------------------------------------------------
+Loading dataset...
+Dataset loaded successfully!
+Train dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Eval dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Getting first batch...
+Batch shape: torch.Size([128, 1, 32, 32])
+Batch dtype: torch.float32
+Batch min/max: 0.0000 / 1.0000
+Scaled batch min/max: 0.0000 / 1.0000
+Testing 3 more batches...
+  Batch 2: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 3: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 4: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+✅ Data loading test PASSED!
+Result: ✅ PASSED
+
+
+🧪 Testing subvp/ode...
+Testing configuration: /lambda/nfs/INDM/INDM/configs/subvp/PROTEIN/indm_fid_ode.py
+Dataset: PROTEIN
+Image size: 32
+Num channels: 1
+SDE type: subvpsde
+Sampling method: ode
+Predictor: euler_maruyama
+Corrector: none
+Batch size: 128
+Centering: True
+--------------------------------------------------
+Loading dataset...
+Dataset loaded successfully!
+Train dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Eval dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Getting first batch...
+Batch shape: torch.Size([128, 1, 32, 32])
+Batch dtype: torch.float32
+Batch min/max: 0.0000 / 1.0000
+Scaled batch min/max: -1.0000 / 1.0000
+Testing 3 more batches...
+  Batch 2: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 3: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 4: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+✅ Data loading test PASSED!
+Result: ✅ PASSED
+
+
+🧪 Testing subvp/pc...
+Testing configuration: /lambda/nfs/INDM/INDM/configs/subvp/PROTEIN/indm_fid_pc.py
+Dataset: PROTEIN
+Image size: 32
+Num channels: 1
+SDE type: subvpsde
+Sampling method: pc
+Predictor: reverse_diffusion
+Corrector: langevin
+Batch size: 128
+Centering: True
+--------------------------------------------------
+Loading dataset...
+Dataset loaded successfully!
+Train dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Eval dataset type: <class 'tensorflow.python.data.ops.prefetch_op._PrefetchDataset'>
+Getting first batch...
+Batch shape: torch.Size([128, 1, 32, 32])
+Batch dtype: torch.float32
+Batch min/max: 0.0000 / 1.0000
+Scaled batch min/max: -1.0000 / 1.0000
+Testing 3 more batches...
+  Batch 2: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 3: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+  Batch 4: shape torch.Size([128, 1, 32, 32]), min/max 0.0000/1.0000
+✅ Data loading test PASSED!
+Result: ✅ PASSED
+
+============================================================
+SUMMARY:
+============================================================
+vp/ode               | ✅ PASSED
+vp/pc                | ✅ PASSED
+ve/ode               | ✅ PASSED
+ve/pc                | ✅ PASSED
+subvp/ode            | ✅ PASSED
+subvp/pc             | ✅ PASSED
+
+Overall result: ✅ ALL TESTS PASSED

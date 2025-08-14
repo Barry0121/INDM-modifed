@@ -39,6 +39,7 @@ def get_config():
   data.dataset = 'PROTEIN'
   data.image_size = 32
   data.num_channels = 1
+  data.centered = False
 
   # model
   model = config.model
