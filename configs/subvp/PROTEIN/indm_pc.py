@@ -31,10 +31,11 @@ def get_config():
   training.likelihood_weighting = True
   training.importance_sampling = True
   training.batch_size = 64  # Very small due to 32x32 matrices
-  training.n_iters = 20005  # Reduced for fast testing - successful runs show good FID within 20k steps
+  training.n_iters = 2005  # Short run for PC flow testing
   training.snapshot_freq = 1000
-  training.log_freq = 50
-  training.eval_freq = 10000
+  training.log_freq = 100
+  training.eval_freq = 1000
+  training.snapshot_freq_for_preemption = 1000
 
   # sampling
   sampling = config.sampling
@@ -73,7 +74,7 @@ def get_config():
   eval_config.batch_size = 50  # Batch size for evaluation
   eval_config.num_samples = 1000  # Number of samples to generate for evaluation
   eval_config.num_test_data = 200  # Placeholder - updated by dataset
-  eval_config.enable_bpd = True  # Disable likelihood (NLL/NELBO) calculation
+  eval_config.enable_bpd = False  # Disable likelihood (NLL/NELBO) calculation
   eval_config.enable_loss = False  # Disable loss evaluation
   eval_config.num_nelbo = 1  # Disable NELBO evaluations
 
