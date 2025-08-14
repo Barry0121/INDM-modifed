@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Training NCSNv3 on Protein Contact Maps with continuous sigmas - No Flow Model."""
+"""Training NCSNv3 on Protein Contact Maps with continuous sigmas - No Flow Model with PC solver."""
 
 import torch
 from configs.default_celeba_configs import get_default_configs
@@ -39,9 +39,9 @@ def get_config():
 
   # sampling
   sampling = config.sampling
-  sampling.method = 'ode'
+  sampling.method = 'pc'
   sampling.predictor = 'euler_maruyama'
-  sampling.corrector = 'none'
+  sampling.corrector = 'langevin'
   sampling.n_steps_each = 1
   sampling.noise_removal = True
   sampling.probability_flow = False
@@ -74,7 +74,7 @@ def get_config():
   eval_config.batch_size = 16  # Batch size for evaluation
   eval_config.num_samples = 5000  # Number of samples to generate for evaluation
   eval_config.num_test_data = 200  # Placeholder - updated by dataset
-  eval_config.enable_bpd = True  # Disable likelihood (NLL/NELBO) calculation
+  eval_config.enable_bpd = False  # Disable likelihood (NLL/NELBO) calculation for PC
   eval_config.enable_loss = False  # Disable loss evaluation
   eval_config.num_nelbo = 1  # Disable NELBO evaluations
 
@@ -176,13 +176,13 @@ def get_config():
   config.protein_eval.precision_thresholds = ['L/10', 'L/5', 'L/2', 'L']  # Top L/x contacts
 
   # Checkpointing
-  config.checkpoint_dir = './checkpoints/protein_contact_maps_vp_noflow/'
+  config.checkpoint_dir = './checkpoints/protein_contact_maps_vp_noflow_pc/'
   config.checkpoint_freq = 5000
   config.keep_checkpoint_max = 5
 
   # Logging
-  config.log_dir = './logs/protein_contact_maps_vp_noflow/'
-  config.wandb_project = 'protein-diffusion-vp-noflow'  # For Weights & Biases logging
+  config.log_dir = './logs/protein_contact_maps_vp_noflow_pc/'
+  config.wandb_project = 'protein-diffusion-vp-noflow-pc'  # For Weights & Biases logging
   config.wandb_entity = None  # Your W&B username/team
 
   return config

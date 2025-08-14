@@ -30,12 +30,12 @@ def get_config():
   training.reduce_mean = True
   training.likelihood_weighting = True
   training.importance_sampling = True
-  training.batch_size = 128  # Very small due to 32x32 matrices
-  training.n_iters = 10000  # Further reduced for quick testing
+  training.batch_size = 32  # Conservative for 40GB GPU memory
+  training.n_iters = 20000  # Reduced for quick testing
   training.snapshot_freq = 5000
   training.log_freq = 500
   training.eval_freq = 5000
-  training.snapshot_freq_for_preemption = 5000  # Override default 10000 to enable sampling every 5000 steps
+  training.snapshot_freq_for_preemption = 10000  # When we will evaluate the training model
 
   # sampling
   sampling = config.sampling
@@ -71,8 +71,8 @@ def get_config():
 
   # Evaluation data statistics (will be updated automatically)
   eval_config = config.eval
-  eval_config.batch_size = 50  # Batch size for evaluation
-  eval_config.num_samples = 1000  # Number of samples to generate for evaluation
+  eval_config.batch_size = 16  # Batch size for evaluation
+  eval_config.num_samples = 5000  # Number of samples to generate for evaluation
   eval_config.num_test_data = 200  # Placeholder - updated by dataset
   eval_config.enable_bpd = True  # Disable likelihood (NLL/NELBO) calculation
   eval_config.enable_loss = False  # Disable loss evaluation
@@ -140,10 +140,10 @@ def get_config():
   flow.squeeze = False  # Disable squeeze to keep 1-channel input
   flow.rank = 1
   flow.local_rank = 0
-  flow.batch_size = 16  # Reduced for protein maps
+  flow.batch_size = 8  # Reduced for protein maps
   flow.eval_batch_size = 4
   flow.batch_steps = 1
-  flow.init_batch_size = 32  # Reduced
+  flow.init_batch_size = 16  # Reduced
   flow.epochs = 500
   flow.valid_epochs = 1
   flow.seed = 65537

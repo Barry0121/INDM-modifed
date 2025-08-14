@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Training NCSNv3 on Protein Contact Maps with continuous sigmas - No Flow Model."""
+"""Training NCSN++ on Protein Contact Maps with VE SDE - No Flow Model with PC solver."""
 
 import torch
 from configs.default_celeba_configs import get_default_configs
@@ -25,11 +25,11 @@ def get_config():
 
   # training
   training = config.training
-  training.sde = 'vpsde'
+  training.sde = 'vesde'
   training.continuous = True
   training.reduce_mean = True
-  training.likelihood_weighting = False
-  training.importance_sampling = False
+  training.likelihood_weighting = True
+  training.importance_sampling = True
   training.batch_size = 32  # Conservative for 40GB GPU memory
   training.n_iters = 20000  # Reduced for quick testing
   training.snapshot_freq = 5000
@@ -39,9 +39,9 @@ def get_config():
 
   # sampling
   sampling = config.sampling
-  sampling.method = 'ode'
+  sampling.method = 'pc'
   sampling.predictor = 'euler_maruyama'
-  sampling.corrector = 'none'
+  sampling.corrector = 'langevin'
   sampling.n_steps_each = 1
   sampling.noise_removal = True
   sampling.probability_flow = False
@@ -74,36 +74,39 @@ def get_config():
   eval_config.batch_size = 16  # Batch size for evaluation
   eval_config.num_samples = 5000  # Number of samples to generate for evaluation
   eval_config.num_test_data = 200  # Placeholder - updated by dataset
-  eval_config.enable_bpd = True  # Disable likelihood (NLL/NELBO) calculation
+  eval_config.enable_bpd = False  # Disable likelihood (NLL/NELBO) calculation for PC
   eval_config.enable_loss = False  # Disable loss evaluation
   eval_config.num_nelbo = 1  # Disable NELBO evaluations
 
-  # model - Adjusted for protein data
+  # model - Adjusted for protein data with VE-specific settings
   model = config.model
   model.name = 'ncsnpp'
-  model.scale_by_sigma = False
-  model.ema_rate = 0.9999
+  model.scale_by_sigma = True  # Important for VE SDE
+  model.ema_rate = 0.999
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
   model.nf = 128  # Base number of filters
-  model.ch_mult = (1, 2, 2, 2, 4)  # Channel multipliers for each resolution
+  model.ch_mult = (1, 2, 2, 2)  # Channel multipliers for each resolution
   model.num_res_blocks = 4
-  model.attn_resolutions = (16, 8)  # Add attention at multiple resolutions
+  model.attn_resolutions = (16,)  # Add attention at 16x16 resolution
   model.resamp_with_conv = True
   model.conditional = True
-  model.fir = False
+  model.fir = True
   model.fir_kernel = [1, 3, 3, 1]
   model.skip_rescale = True
   model.resblock_type = 'biggan'
   model.progressive = 'none'
-  model.progressive_input = 'none'
+  model.progressive_input = 'residual'
   model.progressive_combine = 'sum'
   model.attention_type = 'ddpm'
   model.init_scale = 0.
-  model.embedding_type = 'positional'
   model.fourier_scale = 16
   model.conv_size = 3
   model.dropout = 0.1  # Add dropout for regularization
+
+  # VE SDE parameters adjusted for protein data in [0,1] range
+  model.sigma_max = 20.0  # Reduced from 90.0 - appropriate for [0,1] data
+  model.sigma_min = 0.01  # Keep existing value, appropriate for [0,1] scale
 
   # Protein-specific model parameters
   model.symmetric_loss = True  # Enforce symmetry in protein contact maps
@@ -120,13 +123,6 @@ def get_config():
   optim.eps = 1e-8
   optim.warmup = 5000
   optim.grad_clip = 1.0
-
-  # SDE settings
-  sde = config.sde if hasattr(config, 'sde') else type('SDE', (), {})()
-  sde.beta_min = 0.1
-  sde.beta_max = 20.0
-  sde.num_scales = 1000
-  config.sde = sde
 
   # flow - Identity flow model (no flow)
   flow = config.flow
@@ -176,13 +172,13 @@ def get_config():
   config.protein_eval.precision_thresholds = ['L/10', 'L/5', 'L/2', 'L']  # Top L/x contacts
 
   # Checkpointing
-  config.checkpoint_dir = './checkpoints/protein_contact_maps_vp_noflow/'
+  config.checkpoint_dir = './checkpoints/protein_contact_maps_ve_noflow_pc/'
   config.checkpoint_freq = 5000
   config.keep_checkpoint_max = 5
 
   # Logging
-  config.log_dir = './logs/protein_contact_maps_vp_noflow/'
-  config.wandb_project = 'protein-diffusion-vp-noflow'  # For Weights & Biases logging
+  config.log_dir = './logs/protein_contact_maps_ve_noflow_pc/'
+  config.wandb_project = 'protein-diffusion-ve-noflow-pc'  # For Weights & Biases logging
   config.wandb_entity = None  # Your W&B username/team
 
   return config
@@ -209,7 +205,6 @@ def get_protein_small_config():
 
   # Reduce training iterations
   config.training.n_iters = 500000
-  config.sde.num_scales = 500
 
   return config
 
@@ -235,6 +230,5 @@ def get_protein_large_config():
 
   # Increase training iterations
   config.training.n_iters = 2000000
-  config.sde.num_scales = 2000
 
   return config
