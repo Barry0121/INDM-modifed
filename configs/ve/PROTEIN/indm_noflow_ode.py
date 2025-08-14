@@ -30,7 +30,7 @@ def get_config():
   training.reduce_mean = True
   training.likelihood_weighting = True
   training.importance_sampling = True
-  training.batch_size = 32  # Conservative for 40GB GPU memory
+  training.batch_size = 64  # Increased for better performance
   training.n_iters = 20000  # Reduced for quick testing
   training.snapshot_freq = 5000
   training.log_freq = 500
@@ -71,7 +71,7 @@ def get_config():
 
   # Evaluation data statistics (will be updated automatically)
   eval_config = config.eval
-  eval_config.batch_size = 16  # Batch size for evaluation
+  eval_config.batch_size = 32  # Increased batch size for evaluation
   eval_config.num_samples = 5000  # Number of samples to generate for evaluation
   eval_config.num_test_data = 200  # Placeholder - updated by dataset
   eval_config.enable_bpd = True  # Enable likelihood (NLL/NELBO) calculation
@@ -136,7 +136,7 @@ def get_config():
   flow.squeeze = False  # Disable squeeze to keep 1-channel input
   flow.rank = 1
   flow.local_rank = 0
-  flow.batch_size = 8  # Reduced for protein maps
+  flow.batch_size = 16  # Increased for protein maps
   flow.eval_batch_size = 4
   flow.batch_steps = 1
   flow.init_batch_size = 16  # Reduced

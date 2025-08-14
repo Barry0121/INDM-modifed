@@ -47,6 +47,12 @@
 - **Current Goal**: Focus on evaluating diffusion model WITHOUT flow using ODE and PC methods on protein contact map dataset
 - **Priority**: Get basic diffusion model working first, then troubleshoot flow integration later
 
+### 4. Flow Model Performance Issues (2025-08-14)
+- **Problem**: Flow model continues to have issues with higher FID compared to diffusion-only models
+- **Status**: Ongoing issue requiring investigation
+- **Impact**: Flow + diffusion model combination underperforming relative to pure diffusion approaches
+- **Next Steps**: Focus on diffusion-only models until flow integration issues are resolved
+
 ## Success Criteria
 
 ### FID Performance Standard
