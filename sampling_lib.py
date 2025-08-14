@@ -29,6 +29,7 @@ from flow_models.flow_model import flow_forward
 
 
 def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_dir, temperature=1., inverse_scaler=None, this_sample_dir=None, scaler=None, data_mean=None):
+    SCALING_FACTOR = 1. if config.data.dataset == 'PROTEIN' else 255. # different data uses different scale to return to image space, we don't apply any scaling for protein data here.
     logging.info("sampling -- ckpt step: %d, round: %d" % (step, r))
     tf.io.gfile.makedirs(sample_dir)
     tf.io.gfile.makedirs(this_sample_dir)
@@ -37,7 +38,7 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
         logging.info(f'nfe: {n}')
 
         # save npz file of 'before_flow' samples
-        samples = (samples_before_flow.permute(0, 2, 3, 1).cpu().numpy() * 255.)
+        samples = (samples_before_flow.permute(0, 2, 3, 1).cpu().numpy() * SCALING_FACTOR)
         samples = samples.reshape((-1, config.data.image_size, config.data.image_size, config.data.num_channels))
         assert samples.shape == (samples.shape[0], config.data.image_size, config.data.image_size, config.data.num_channels)
         # Write samples to disk or Google Cloud Storage
@@ -46,7 +47,7 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
             np.savez_compressed(io_buffer, samples=samples)
             fout.write(io_buffer.getvalue())
         # save npz file of 'after_flow' samples
-        samples = np.clip(samples_after_flow.permute(0, 2, 3, 1).cpu().numpy() * 255., 0., 255.).astype(np.uint8)
+        samples = np.clip(samples_after_flow.permute(0, 2, 3, 1).cpu().numpy() * SCALING_FACTOR, 0., SCALING_FACTOR).astype(np.uint8)
         assert samples.shape == (samples.shape[0], config.data.image_size, config.data.image_size, config.data.num_channels)
         samples = samples.reshape((-1, config.data.image_size, config.data.image_size, config.data.num_channels))
         filename = f"samples_{r}.npz"
@@ -56,18 +57,18 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
             np.savez_compressed(io_buffer, samples=samples)
             fout.write(io_buffer.getvalue())
     else:
-        samples_before_flow = torch.tensor(np.load(os.path.join(sample_dir, f"samples_{r}_before_flow.npz"))['samples']).permute(0, 3, 1, 2) / 255.
+        samples_before_flow = torch.tensor(np.load(os.path.join(sample_dir, f"samples_{r}_before_flow.npz"))['samples']).permute(0, 3, 1, 2) / SCALING_FACTOR
         if config.sampling.pc_denoise:
             if not os.path.exists(os.path.join(this_sample_dir, f'samples_{r}_denoise_{config.sampling.pc_denoise_time}.npz')):
                 if not os.path.exists(os.path.join(sample_dir, f'samples_{r}_before_flow_denoise_{config.sampling.pc_denoise_time}.npz')):
                     logging.info(f'denoise for pc with round {r} and final time {config.sampling.pc_denoise_time}')
                     if config.training.sde == 'vesde':
-                        samples_before_flow = torch.tensor(np.load(os.path.join(sample_dir, f"samples_{r}_before_flow_for_search.npz"))['samples']).permute(0, 3, 1, 2) / 255.
+                        samples_before_flow = torch.tensor(np.load(os.path.join(sample_dir, f"samples_{r}_before_flow_for_search.npz"))['samples']).permute(0, 3, 1, 2) / SCALING_FACTOR
                     else:
-                        samples_before_flow = torch.tensor(np.load(os.path.join(sample_dir, f"samples_{r}_before_flow.npz"))['samples']).permute(0, 3, 1, 2) / 255.
+                        samples_before_flow = torch.tensor(np.load(os.path.join(sample_dir, f"samples_{r}_before_flow.npz"))['samples']).permute(0, 3, 1, 2) / SCALING_FACTOR
                     samples_before_flow, samples_after_flow, n = sampling_fn(score_model, flow_model, temperature, data_mean, final_time=config.sampling.pc_denoise_time, before_data=scaler(samples_before_flow))
                     # save npz file of 'before_flow' samples
-                    samples = (samples_before_flow.permute(0, 2, 3, 1).cpu().numpy() * 255.)
+                    samples = (samples_before_flow.permute(0, 2, 3, 1).cpu().numpy() * SCALING_FACTOR)
                     samples = samples.reshape(
                         (-1, config.data.image_size, config.data.image_size, config.data.num_channels))
                     assert samples.shape == (
@@ -78,7 +79,7 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
                         np.savez_compressed(io_buffer, samples=samples)
                         fout.write(io_buffer.getvalue())
                 else:
-                    samples_before_flow = torch.tensor(np.load(os.path.join(sample_dir, f"samples_{r}_before_flow_denoise_{config.sampling.pc_denoise_time}.npz"))['samples']).permute(0, 3, 1, 2) / 255.
+                    samples_before_flow = torch.tensor(np.load(os.path.join(sample_dir, f"samples_{r}_before_flow_denoise_{config.sampling.pc_denoise_time}.npz"))['samples']).permute(0, 3, 1, 2) / SCALING_FACTOR
                     with torch.no_grad():
                         if config.flow.model != 'identity':
                             assert samples_before_flow.shape[0] % 16 == 0
@@ -90,7 +91,7 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
                                                      'cuda') * temperature,
                                                  log_det=None, reverse=True)[0]
                         samples_after_flow = inverse_scaler(samples_after_flow)
-                samples = np.clip(samples_after_flow.permute(0, 2, 3, 1).cpu().numpy() * 255., 0., 255.).astype(
+                samples = np.clip(samples_after_flow.permute(0, 2, 3, 1).cpu().numpy() * SCALING_FACTOR, 0., SCALING_FACTOR).astype(
                     np.uint8)
                 assert samples.shape == (
                     samples.shape[0], config.data.image_size, config.data.image_size, config.data.num_channels)
@@ -105,14 +106,14 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
             else:
                 print(f'load denoise sample with {config.sampling.pc_denoise_time}')
                 samples_after_flow = torch.tensor(np.load(os.path.join(this_sample_dir, f"samples_{r}_denoise_{config.sampling.pc_denoise_time}.npz"))['samples']).permute(
-                    0, 3, 1, 2) / 255.
+                    0, 3, 1, 2) / SCALING_FACTOR
 
         elif config.sampling.more_step:
             if not os.path.exists(os.path.join(this_sample_dir, f'samples_{r}_more_step.npz')):
                 logging.info(f'more step with round {r}')
                 samples_before_flow, samples_after_flow, n = sampling_fn(score_model, flow_model, temperature, data_mean, before_data=scaler(samples_before_flow))
                 # save npz file of 'before_flow' samples
-                samples = (samples_before_flow.permute(0, 2, 3, 1).cpu().numpy() * 255.)
+                samples = (samples_before_flow.permute(0, 2, 3, 1).cpu().numpy() * SCALING_FACTOR)
                 samples = samples.reshape(
                     (-1, config.data.image_size, config.data.image_size, config.data.num_channels))
                 assert samples.shape == (
@@ -123,7 +124,7 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
                     np.savez_compressed(io_buffer, samples=samples)
                     fout.write(io_buffer.getvalue())
 
-                samples = np.clip(samples_after_flow.permute(0, 2, 3, 1).cpu().numpy() * 255., 0., 255.).astype(
+                samples = np.clip(samples_after_flow.permute(0, 2, 3, 1).cpu().numpy() * SCALING_FACTOR, 0., SCALING_FACTOR).astype(
                     np.uint8)
                 assert samples.shape == (
                     samples.shape[0], config.data.image_size, config.data.image_size, config.data.num_channels)
@@ -138,7 +139,7 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
             else:
                 print(f'load more step sample')
                 samples_after_flow = torch.tensor(np.load(os.path.join(this_sample_dir, f"samples_{r}_more_step.npz"))['samples']).permute(
-                    0, 3, 1, 2) / 255.
+                    0, 3, 1, 2) / SCALING_FACTOR
 
         else:
             if not os.path.exists(os.path.join(this_sample_dir, f'samples_{r}.npz')):
@@ -151,7 +152,7 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
                             flow_forward(config, flow_model, scaler(samples_before_flow[16 * k:16 * (k + 1)]).to('cuda') * temperature,
                                          log_det=None, reverse=True)[0]
                     samples_after_flow = inverse_scaler(samples_after_flow)
-                samples = np.clip(samples_after_flow.permute(0, 2, 3, 1).cpu().numpy() * 255., 0., 255.).astype(np.uint8)
+                samples = np.clip(samples_after_flow.permute(0, 2, 3, 1).cpu().numpy() * SCALING_FACTOR, 0., SCALING_FACTOR).astype(np.uint8)
                 assert samples.shape == (
                     samples.shape[0], config.data.image_size, config.data.image_size, config.data.num_channels)
                 samples = samples.reshape(
@@ -164,13 +165,13 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
                     fout.write(io_buffer.getvalue())
 
                 nrow = int(np.sqrt(samples.shape[0]))
-                image_grid = make_grid(torch.tensor(samples).permute(0, 3, 1, 2) / 255., nrow, padding=2)
+                image_grid = make_grid(torch.tensor(samples).permute(0, 3, 1, 2) / SCALING_FACTOR, nrow, padding=2)
                 with tf.io.gfile.GFile(
                         os.path.join(this_sample_dir, f"sample_{r}.png"), "wb") as fout:
                     save_image(image_grid, fout)
             else:
                 samples_after_flow = torch.tensor(np.load(os.path.join(this_sample_dir, f"samples_{r}.npz"))['samples']).permute(
-                    0, 3, 1, 2) / 255.
+                    0, 3, 1, 2) / SCALING_FACTOR
 
     return samples_before_flow, samples_after_flow
 
@@ -183,7 +184,7 @@ def get_latents(config, samples, inception_model, inceptionv3, step, r, sample_d
         name = utils.create_name(f'statistics_more_step', r, 'npz')
     else:
         name = utils.create_name('statistics', r, 'npz')
-    samples = (samples.permute(0,2,3,1) * 255.).cpu().detach().numpy().astype(np.uint8)
+    samples = (samples.permute(0,2,3,1) * SCALING_FACTOR).cpu().detach().numpy().astype(np.uint8)
     # samples = torch.tensor(samples, device=inception_model.device)
     if not os.path.exists(os.path.join(sample_dir, name)):
         for k in range(num):
