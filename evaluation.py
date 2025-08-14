@@ -97,7 +97,7 @@ def compute_fid_and_is(config, score_model, flow_model, sampling_fn, step, sampl
   tf.keras.backend.clear_session()
   torch.cuda.empty_cache()
 
-def compute_fid_and_is_(config, assetdir, inceptionv3, ckpt, dataset, name='/0', sample_dir='', latents='',
+def compute_fid_and_is_(config, assetdir, inceptionv3, ckpt, dataset, name='0', sample_dir='', latents='',
                        num_data=1000):
   if config.data.dataset in ['CIFAR10', 'IMAGENET32']:
     compute_fid_and_is_cifar10(config, assetdir, inceptionv3, ckpt, name=name, sample_dir=sample_dir, latents=latents,
@@ -113,7 +113,7 @@ def compute_fid_and_is_(config, assetdir, inceptionv3, ckpt, dataset, name='/0',
     raise NotImplementedError
 
 
-def compute_fid_(config, assetdir, inceptionv3, ckpt, dataset, name='/0', sample_dir='', latents='', num_data=1000):
+def compute_fid_(config, assetdir, inceptionv3, ckpt, dataset, name='0', sample_dir='', latents='', num_data=1000):
   # if config.data.dataset == 'LSUN':
   #    fids = fid_ttur.calculate_fid_given_paths([sample_dir, assetdir + f'/LSUN_{config.data.category}_{config.data.image_size}_stats.npz'], './', low_profile=False)
   # elif config.data.dataset == 'FFHQ':
@@ -282,33 +282,33 @@ def protein_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
   reg_eps = max(eps, 1e-4)  # Minimum regularization for high-dim matrices
   sigma1_reg = sigma1 + np.eye(sigma1.shape[0]) * reg_eps
   sigma2_reg = sigma2 + np.eye(sigma2.shape[0]) * reg_eps
-  
+
   # Use eigenvalue decomposition for more stable computation
   try:
     # Try standard approach first
     product = sigma1_reg.dot(sigma2_reg)
     covmean, _ = linalg.sqrtm(product, disp=False)
-    
+
     # Check for numerical issues
     if not np.isfinite(covmean).all() or np.iscomplexobj(covmean):
       raise np.linalg.LinAlgError("Matrix square root failed")
-      
+
   except (np.linalg.LinAlgError, ValueError):
     # Fallback: use eigenvalue decomposition for numerical stability
     logging.warning("Using eigenvalue decomposition fallback for matrix square root")
-    
+
     # Compute eigendecomposition of both matrices
     eigvals1, eigvecs1 = np.linalg.eigh(sigma1_reg)
     eigvals2, eigvecs2 = np.linalg.eigh(sigma2_reg)
-    
+
     # Ensure positive eigenvalues
     eigvals1 = np.maximum(eigvals1, reg_eps)
     eigvals2 = np.maximum(eigvals2, reg_eps)
-    
+
     # Reconstruct matrices with regularized eigenvalues
     sigma1_stable = eigvecs1 @ np.diag(eigvals1) @ eigvecs1.T
     sigma2_stable = eigvecs2 @ np.diag(eigvals2) @ eigvecs2.T
-    
+
     # Compute trace of geometric mean using eigenvalue approach
     # tr(sqrt(sigma1 * sigma2)) ≈ sum(sqrt(eigvals of sigma1 * sigma2))
     product_stable = sigma1_stable @ sigma2_stable
@@ -336,17 +336,17 @@ def protein_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
         tr_covmean = np.sum(np.sqrt(prod_eigvals))
     else:
       tr_covmean = np.trace(covmean)
-  
+
   # Compute final FID
   mean_diff = diff.dot(diff)
   trace1 = np.trace(sigma1_reg)
   trace2 = np.trace(sigma2_reg)
-  
+
   fid = mean_diff + trace1 + trace2 - 2 * tr_covmean
-  
+
   # Ensure non-negative result (FID should always be >= 0)
   fid = max(0.0, fid)
-  
+
   return fid
 
 
@@ -461,7 +461,7 @@ def load_protein_samples(sample_dir, num_data=1000):
   return gen_samples
 
 
-def compute_protein_fid_and_prdc(config, assetdir, ckpt, name='/0', sample_dir='', num_data=1000, nearest_k=5):
+def compute_protein_fid_and_prdc(config, assetdir, ckpt, name='0', sample_dir='', num_data=1000, nearest_k=5):
   """Compute FID and PRDC metrics for protein distance maps using direct comparison.
 
   Args:
@@ -477,7 +477,7 @@ def compute_protein_fid_and_prdc(config, assetdir, ckpt, name='/0', sample_dir='
 
   # Load reference statistics and samples (shared for both FID and PRDC)
   ref_mu, ref_sigma = get_protein_dataset_stats(config, num_data=num_data)
-  
+
   # Load reference samples for PRDC calculation
   logging.info('Loading reference protein samples for PRDC calculation')
   train_ds, eval_ds = datasets.get_dataset(config)
@@ -518,7 +518,7 @@ def compute_protein_fid_and_prdc(config, assetdir, ckpt, name='/0', sample_dir='
       min_samples = min(len(ref_samples), len(gen_samples))
       ref_samples_prdc = ref_samples[:min_samples]
       gen_samples_prdc = gen_samples[:min_samples]
-      
+
       logging.info(f'Computing PRDC with {min_samples} samples each, k={nearest_k}')
       prdc_result = compute_prdc(
           real_features=ref_samples_prdc,
@@ -526,13 +526,13 @@ def compute_protein_fid_and_prdc(config, assetdir, ckpt, name='/0', sample_dir='
           nearest_k=nearest_k
       )
       prdc_metrics = prdc_result
-      
+
       logging.info(f'{sample_dir}_ckpt-{ckpt}_{name} --- Protein PRDC:')
       logging.info(f'  Precision: {prdc_metrics["precision"]:.6f}')
       logging.info(f'  Recall: {prdc_metrics["recall"]:.6f}')
       logging.info(f'  Density: {prdc_metrics["density"]:.6f}')
       logging.info(f'  Coverage: {prdc_metrics["coverage"]:.6f}')
-      
+
     except Exception as e:
       logging.error(f'PRDC computation failed: {e}')
       prdc_metrics = {'precision': None, 'recall': None, 'density': None, 'coverage': None}
@@ -551,7 +551,7 @@ def compute_protein_fid_and_prdc(config, assetdir, ckpt, name='/0', sample_dir='
     with tf.io.gfile.GFile(result_path, "wb") as f:
       io_buffer = io.BytesIO()
       # Save both FID and PRDC metrics
-      np.savez_compressed(io_buffer, 
+      np.savez_compressed(io_buffer,
                          fids=fid_score,
                          precision=prdc_metrics['precision'],
                          recall=prdc_metrics['recall'],

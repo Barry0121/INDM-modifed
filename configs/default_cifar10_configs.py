@@ -6,7 +6,7 @@ def get_default_configs():
   config = ml_collections.ConfigDict()
   # training
   config.training = training = ml_collections.ConfigDict()
-  config.training.batch_size = 128
+  config.training.batch_size = 32
   training.n_iters = 13000001
   training.snapshot_freq = 10000
   training.log_freq = 100
@@ -33,7 +33,7 @@ def get_default_configs():
   sampling.noise_removal = True
   sampling.probability_flow = False
   sampling.snr = 0.16
-  sampling.batch_size = 1024
+  sampling.batch_size = 256
   sampling.truncation_time = 1e-5
 
   sampling.temperature = 1.
@@ -51,11 +51,11 @@ def get_default_configs():
 
   # evaluation
   config.eval = evaluate = ml_collections.ConfigDict()
-  evaluate.begin_ckpt = 9
+  evaluate.begin_ckpt = 5
   evaluate.end_ckpt = 26
-  evaluate.batch_size = 200
+  evaluate.batch_size = 80
   evaluate.enable_sampling = True
-  evaluate.num_samples = 50000
+  evaluate.num_samples = 10000
   evaluate.enable_loss = True
   evaluate.enable_bpd = True
   evaluate.bpd_dataset = 'test'
@@ -63,7 +63,7 @@ def get_default_configs():
   evaluate.residual = False
   evaluate.score_ema = True
   evaluate.flow_ema = False
-  evaluate.num_nelbo = 3
+  evaluate.num_nelbo = 1
   evaluate.rtol = 1e-5
   evaluate.atol = 1e-5
 
@@ -72,7 +72,7 @@ def get_default_configs():
   evaluate.truncation_time = -1.
 
   evaluate.data_mean = False
-  evaluate.skip_nll_wrong = False
+  evaluate.skip_nll_wrong = True
 
   # data
   config.data = data = ml_collections.ConfigDict()

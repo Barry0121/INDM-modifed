@@ -76,13 +76,13 @@ def get_config():
   flow.intermediate_dim = 512
   flow.resblock_type = 'resflow'
 
-  flow.model_config = 'flow_models/wolf/wolf_configs/cifar10/glow/resflow-gaussian-uni.json'
+  flow.model_config = 'flow_models/wolf/wolf_configs/protein/resflow-gaussian-uni.json'
   flow.rank = 1
   flow.local_rank = 0
-  flow.batch_size = 512
-  flow.eval_batch_size = 4
+  flow.batch_size = 128
+  flow.eval_batch_size = 1
   flow.batch_steps = 1
-  flow.init_batch_size = 1024
+  flow.init_batch_size = 256
   flow.epochs = 500
   flow.valid_epochs = 1
   flow.seed = 65537
