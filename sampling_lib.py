@@ -21,7 +21,7 @@ import io
 import torch
 import numpy as np
 import gc
-import INDM.evaluation_original as evaluation_original
+import evaluation
 import utils
 import tensorflow as tf
 from torchvision.utils import make_grid, save_image
@@ -176,6 +176,7 @@ def get_samples(config, score_model, flow_model, sampling_fn, step, r, sample_di
     return samples_before_flow, samples_after_flow
 
 def get_latents(config, samples, inception_model, inceptionv3, step, r, sample_dir, small_batch=128):
+    SCALING_FACTOR = 1. if config.data.dataset == 'PROTEIN' else 255.
     latents = {}
     num = (samples.shape[0] - 1) // small_batch + 1
     if config.sampling.pc_denoise:
@@ -190,7 +191,7 @@ def get_latents(config, samples, inception_model, inceptionv3, step, r, sample_d
         for k in range(num):
             # Force garbage collection before calling TensorFlow code for Inception network
             gc.collect()
-            latents_temp = evaluation_original.run_inception_distributed(samples[small_batch * k:small_batch * (k + 1)],
+            latents_temp = evaluation.run_inception_distributed(samples[small_batch * k:small_batch * (k + 1)],
                                                                 inception_model,
                                                                 inceptionv3=inceptionv3)
             if k == 0:
