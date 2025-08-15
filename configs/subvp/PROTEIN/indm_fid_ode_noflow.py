@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Training NCSNv3 on PROTEIN with continuous sigmas."""
+"""Training NCSNv3 on PROTEIN with continuous sigmas - SubVP without flow model."""
 
 from configs.default_cifar10_configs import get_default_configs
 
@@ -31,9 +31,9 @@ def get_config():
 
   # sampling
   sampling = config.sampling
-  sampling.method = 'pc'
-  sampling.predictor = 'reverse_diffusion'
-  sampling.corrector = 'langevin'
+  sampling.method = 'ode'
+  sampling.predictor = 'euler_maruyama'
+  sampling.corrector = 'none'
 
   # data
   data = config.data
@@ -68,46 +68,8 @@ def get_config():
   model.fourier_scale = 16
   model.conv_size = 3
 
-  # flow
+  # flow - set to identity (no flow model)
   flow = config.flow
-  flow.model = 'wolf'
-  flow.lr = 1e-3
-  flow.ema_rate = 0.999
-  flow.optim_reset = False
-  flow.nblocks = '16-16'
-  flow.intermediate_dim = 512
-  flow.resblock_type = 'resflow'
-
-  flow.model_config = 'flow_models/wolf/wolf_configs/protein/resflow-gaussian-uni.json'
-  flow.rank = 1
-  flow.local_rank = 0
-  flow.batch_size = 128
-  flow.eval_batch_size = 1
-  flow.batch_steps = 1
-  flow.init_batch_size = 256
-  flow.epochs = 500
-  flow.valid_epochs = 1
-  flow.seed = 65537
-  flow.train_k = 1
-  flow.log_interval = 10
-  # flow.lr = 0.001
-  flow.warmup_steps = 500
-  flow.lr_decay = 0.999997
-  flow.beta1 = 0.9
-  flow.beta2 = 0.999
-  flow.eps = 1e-8
-  flow.weight_decay = 0
-  flow.amsgrad = True
-  flow.grad_clip = 0
-  flow.dataset = 'protein'
-  flow.category = None
-  flow.image_size = 32
-  flow.workers = 4
-  flow.n_bits = 8
-  flow.recover = -1
-
-  # evaluation - disable BPE for PC solver (only ODE needs BPE)
-  evaluate = config.eval
-  evaluate.enable_bpd = False
+  flow.model = 'identity'
 
   return config
