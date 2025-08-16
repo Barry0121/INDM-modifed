@@ -97,4 +97,8 @@ def get_config():
   flow.n_bits = 8
   flow.recover = -1
 
+  # evaluation
+  evaluate = config.eval
+  evaluate.enable_bpd = False
+
   return config

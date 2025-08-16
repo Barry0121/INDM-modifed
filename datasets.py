@@ -182,9 +182,8 @@ def get_dataset_from_tf(config, evaluation=False):
 
   # Create dataset builders for each dataset.
   if config.data.dataset == 'CIFAR10':
-    dataset_builder = tfds.builder('cifar10', data_dir=os.path.dirname(
-      os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))) + f'/data/')
-  #dataset_builder = tfds.builder('cifar10')
+    local_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tfds_data')
+    dataset_builder = tfds.builder('cifar10', data_dir=local_data_dir)
     train_split_name = 'train'
     eval_split_name = 'test'
 

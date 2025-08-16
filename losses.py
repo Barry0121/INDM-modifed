@@ -299,6 +299,11 @@ def get_step_fn(config, sde, train, optimize_fn=None, scaler=None):
         else:
           losses_flow = - losses_flow
           losses_logp = - losses_logp
+        
+        # Apply flow weight if specified to reduce value spread
+        flow_weight = getattr(config.flow, 'weight', 1.0)
+        losses_flow = losses_flow * flow_weight
+        
         assert losses_score.shape == losses_flow.shape == losses_logp.shape == torch.Size([transformed_mini_batch.shape[0]])
         losses = losses_score + losses_flow + losses_logp
         torch.mean(losses).backward(retain_graph=True)
@@ -364,6 +369,11 @@ def get_step_fn(config, sde, train, optimize_fn=None, scaler=None):
         else:
           losses_flow = - losses_flow
           losses_logp = - losses_logp
+        
+        # Apply flow weight if specified to reduce value spread
+        flow_weight = getattr(config.flow, 'weight', 1.0)
+        losses_flow = losses_flow * flow_weight
+        
         assert losses_score.shape == losses_flow.shape == losses_logp.shape == torch.Size([transformed_mini_batch.shape[0]])
         losses = losses_score + losses_flow + losses_logp
         torch.mean(losses).backward(retain_graph=True)
