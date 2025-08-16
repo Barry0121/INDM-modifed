@@ -304,6 +304,11 @@ def get_dataset_from_tf(config, evaluation=False):
         split=split, shuffle_files=True, read_config=read_config)
     else:
       ds = dataset_builder.with_options(dataset_options)
+    
+    # Limit training data size based on config.training.num_train_data for PROTEIN dataset
+    if config.data.dataset == "PROTEIN" and split == train_split_name and not evaluation:
+      ds = ds.take(config.training.num_train_data)
+    
     ds = ds.repeat(count=num_epochs)
     ds = ds.shuffle(shuffle_buffer_size)
     ds = ds.map(preprocess_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)

@@ -31,7 +31,7 @@ class ProteinDistanceMatrices(tfds.core.GeneratorBasedBuilder):
         # Path to your NPZ file
         npz_path = os.path.join('/'.join(os.path.dirname(__file__).split('/')[:-1]), 'data', 'pdb', 'distance_matrices.npz')
 
-        # Return proper SplitGenerator objects
+        # Return proper SplitGenerator objects - 80% train, 20% test (no validation)
         return [
             tfds.core.SplitGenerator(
                 name=tfds.Split.TRAIN,
@@ -47,13 +47,6 @@ class ProteinDistanceMatrices(tfds.core.GeneratorBasedBuilder):
                     'split': 'test',
                 },
             ),
-            tfds.core.SplitGenerator(
-                name=tfds.Split.VALIDATION,
-                gen_kwargs={
-                    'npz_path': npz_path,
-                    'split': 'validation',
-                },
-            ),
         ]
 
     def _generate_examples(self, npz_path, split):
@@ -61,18 +54,15 @@ class ProteinDistanceMatrices(tfds.core.GeneratorBasedBuilder):
         data = np.load(npz_path)
         matrices = data['distance_matrices']
 
-        # Split the data (adjust ratios as needed)
+        # Split the data: 80% train, 20% test
         total_samples = matrices.shape[0]  # 582,681
 
         if split == 'train':
             start_idx = 0
-            end_idx = int(0.8 * total_samples)  # 80% for training
-        elif split == 'validation':
-            start_idx = int(0.8 * total_samples)
-            end_idx = int(0.9 * total_samples)   # 10% for validation
+            end_idx = int(0.8 * total_samples)  # 80% for training (466,145)
         else:  # test
-            start_idx = int(0.9 * total_samples)
-            end_idx = total_samples              # 10% for testing
+            start_idx = int(0.8 * total_samples)
+            end_idx = total_samples              # 20% for testing (116,536)
 
         for idx in range(start_idx, end_idx):
             matrix = matrices[idx]  # Shape: (32, 32)
