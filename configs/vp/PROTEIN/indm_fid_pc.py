@@ -106,7 +106,7 @@ def get_config():
   flow.n_bits = 8
   flow.recover = -1
 
-  # evaluation - disable BPE for PC solver (only ODE needs BPE)
+  # evaluation
   evaluate = config.eval
   evaluate.enable_bpd = False
 

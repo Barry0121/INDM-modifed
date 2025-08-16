@@ -344,7 +344,7 @@ def plot_smoothed_losses(log_file_path: str, window_size: int = 50, save_path: s
 # Example usage:
 if __name__ == "__main__":
     # Replace 'paste.txt' with your actual log file path
-    log_file = '/home/ubuntu/INDM/INDM/outputs/subvp/PROTEIN/ode-noflow/stdout.txt'
+    log_file = '/home/ubuntu/INDM-2/INDM-modifed/outputs/vp/PROTEIN/ode-noflow/stdout.txt'
 
     # Create the main plot
     plot_training_losses(log_file, save_path='training_losses.png')
