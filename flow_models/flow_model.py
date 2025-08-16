@@ -64,6 +64,11 @@ def flow_forward(config, flow_model, x, log_det=0, reverse=False):
             logdet_kl = -1
         if config.flow.squeeze:
             z = SqueezeLayer(2).inverse(z)
+        
+        # Apply output weight if specified to reduce value spread
+        if hasattr(config.flow, 'output_weight'):
+            z = z * config.flow.output_weight
+        
         return z, logdet_kl
     else:
         return flow_model(x, reverse=reverse)
